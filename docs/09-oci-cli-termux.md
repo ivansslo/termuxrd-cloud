@@ -119,6 +119,43 @@ ls ~/.oci/
 # config  oci_api_key.pem  oci_api_key_public.pem
 ```
 
+### The config must have one key per line
+
+Pasting the Console snippet into a terminal often loses the newlines,
+producing a file like this:
+
+```
+[DEFAULT] user=ocid1... fingerprint=a1:3a... region=ap-singapore-1 key_file="~/.oci/oci_api_key.pem"
+```
+
+The SDK reads **nothing** from that — not a partial config, nothing at
+all. Check quickly:
+
+```bash
+wc -l ~/.oci/config      # fewer than 2 lines means it is broken
+```
+
+Repair it:
+
+```bash
+bash scripts/termux-oci-cli.sh --repair-config
+```
+
+The original is kept as `config.broken-<timestamp>`.
+
+A correct config looks like:
+
+```ini
+[DEFAULT]
+user=ocid1.user.oc1..aaaa
+fingerprint=a1:3a:75:...
+tenancy=ocid1.tenancy.oc1..aaaa
+region=ap-singapore-1
+key_file=/data/data/com.termux/files/home/.oci/oci_api_key.pem
+```
+
+No quotes around `key_file`, no trailing `# comment`, no `~`.
+
 ### Permissions
 
 ```bash

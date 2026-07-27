@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.1.2] — 2026-07-27
+
+### Added
+
+- **`--repair-config`** — rebuilds a mangled `~/.oci/config`. Pasting
+  the Console's snippet into a terminal frequently loses the newlines,
+  leaving every key on one line; the SDK then reads *nothing*, and
+  `oci` fails with no useful message. The repair splits on key names,
+  strips quotes and trailing comments, expands `~`/`$HOME` in
+  `key_file`, and keeps a timestamped copy of the original.
+
+### Fixed
+
+- `--check` now validates that the config actually **parses** with
+  Python's `configparser` — the same reader the SDK uses — instead of
+  matching lines with `sed`. A single-line config previously looked
+  half-valid: the permission check passed, then `key_file` was reported
+  missing, which pointed at the wrong problem.
+- `key_file` problems are now named precisely: quoted value, trailing
+  comment, or a leading `~`/`$HOME`. Each is read literally by the SDK
+  and each was previously lumped together as "not absolute".
+
 ## [1.1.1] — 2026-07-27
 
 ### Fixed
@@ -57,6 +79,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.1.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.2
 [1.1.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.1
 [1.1.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.0
 [1.0.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.0.0
