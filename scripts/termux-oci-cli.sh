@@ -70,6 +70,36 @@ print(value.strip())
 PYCFG
 }
 
+# Derive the OCI fingerprint (MD5 of the DER public key) from a private key.
+#
+# Deliberately not parsing `openssl md5 -c` output: some builds print
+# "MD5(stdin)=aa:bb" with no space, which breaks field-splitting, and an
+# encrypted key yields the hash of *empty input* (d41d8cd9...) — a wrong
+# answer that looks like a right one. Python's cryptography module is
+# already present because oci-cli depends on it.
+key_fingerprint() {
+    local keyfile="$1"
+    [ -f "$keyfile" ] || return 0
+    python3 - "$keyfile" <<'PYFP' 2>/dev/null || true
+import hashlib, sys
+try:
+    from cryptography.hazmat.primitives import serialization
+except ImportError:
+    sys.exit(0)
+try:
+    data = open(sys.argv[1], "rb").read()
+    key = serialization.load_pem_private_key(data, password=None)
+    der = key.public_key().public_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo,
+    )
+except Exception:
+    sys.exit(0)
+digest = hashlib.md5(der).hexdigest()
+print(":".join(digest[i:i + 2] for i in range(0, len(digest), 2)))
+PYFP
+}
+
 # Is the file even parseable, and does it hold a usable profile?
 config_is_sane() {
     local file="$OCI_DIR/config"
@@ -248,11 +278,13 @@ if [ "$CHECK_ONLY" = 1 ]; then
                 printf '  %s!%s private key permission %s (should be 600)\n' "$Y" "$N" "$kmode"
             fi
 
-            actual=$(openssl rsa -pubout -outform DER -in "$kf" 2>/dev/null \
-                     | openssl md5 -c 2>/dev/null | awk '{print $2}') || actual=""
+            actual=$(key_fingerprint "$kf")
             declared=$(config_value fingerprint)
             if [ -z "$actual" ]; then
-                printf '  %s✗%s cannot read the private key (is it RSA?)\n' "$R" "$N"; fail=1
+                printf '  %s✗%s cannot derive a fingerprint from the key\n' "$R" "$N"
+                printf '      It may be encrypted (needs a pass_phrase), not RSA,\n'
+                printf '      or in a format OpenSSL here cannot read.\n'
+                fail=1
             elif [ "$actual" = "$declared" ]; then
                 printf '  %s✓%s fingerprint matches the key\n' "$G" "$N"
             else

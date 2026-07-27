@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.3] — 2026-07-27
+
+### Fixed
+
+- **False "cannot read the private key" in `--check`.** The fingerprint
+  was derived by text-parsing `openssl md5 -c` output, which some builds
+  print as `MD5(stdin)=aa:bb` with no space — field-splitting then
+  yielded an empty string and the key was declared unreadable even
+  though `oci` worked perfectly.
+- **A worse variant of the same bug:** for an *encrypted* private key,
+  `openssl rsa` writes nothing and the pipeline hashed empty input,
+  producing `d41d8cd9...` — a plausible-looking fingerprint that is
+  simply wrong. An encrypted key is now reported as such.
+
+Fingerprints are now computed with Python's `cryptography` (already
+present, since `oci-cli` depends on it) instead of scraping command
+output.
+
 ## [1.1.2] — 2026-07-27
 
 ### Added
@@ -79,6 +97,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.1.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.3
 [1.1.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.2
 [1.1.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.1
 [1.1.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.0
