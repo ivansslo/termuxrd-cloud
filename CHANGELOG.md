@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.1] — 2026-07-27
+
+### Fixed
+
+- **`--check` exited silently partway through the report.** Under
+  `set -euo pipefail`, a `grep` that finds nothing returns 1 and killed
+  the script — so a config with no `key_file` line stopped the output
+  after "config permission" with no explanation and exit code 1.
+  Lookups now go through a helper that returns an empty string instead
+  of aborting, and the missing key is reported as a normal finding.
+- `--check` also reports private key permissions, and distinguishes an
+  unreadable or non-RSA key from a fingerprint mismatch.
+
 ## [1.1.0] — 2026-07-27
 
 ### Added
@@ -44,5 +57,6 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.1.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.1
 [1.1.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.0
 [1.0.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.0.0

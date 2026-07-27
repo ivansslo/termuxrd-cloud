@@ -39,6 +39,18 @@ die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
 OCI_DIR="$HOME/.oci"
 
+# Read one key from the OCI config.
+#
+# grep exits 1 when a key is absent, which under `set -e` (with pipefail)
+# kills the script silently mid-report. Every lookup goes through here so
+# a missing key becomes an empty string instead of an abrupt exit.
+config_value() {
+    local key="$1" file="$OCI_DIR/config"
+    [ -f "$file" ] || return 0
+    sed -n "s/^[[:space:]]*${key}[[:space:]]*=[[:space:]]*//p" "$file" \
+        | head -1 | tr -d '\r' | sed 's/[[:space:]]*$//'
+}
+
 # ---------------------------------------------------------------------
 # --check
 # ---------------------------------------------------------------------
@@ -67,22 +79,36 @@ if [ "$CHECK_ONLY" = 1 ]; then
         else
             printf '  %s✗%s config permission %s (should be 600)\n' "$Y" "$N" "$mode"
         fi
-        kf=$(grep -E '^\s*key_file' "$OCI_DIR/config" | head -1 | cut -d= -f2- | tr -d ' ')
-        case "$kf" in
-            /*) printf '  %s✓%s key_file is absolute\n' "$G" "$N" ;;
-            *)  printf '  %s✗%s key_file must be an absolute path: %s\n' "$R" "$N" "$kf"; fail=1 ;;
-        esac
-        if [ -f "$kf" ]; then
+        kf=$(config_value key_file)
+        if [ -z "$kf" ]; then
+            printf '  %s✗%s no key_file line in config\n' "$R" "$N"; fail=1
+        else
+            case "$kf" in
+                /*) printf '  %s✓%s key_file is absolute\n' "$G" "$N" ;;
+                *)  printf '  %s✗%s key_file must be an absolute path: %s\n' "$R" "$N" "$kf"; fail=1 ;;
+            esac
+        fi
+        if [ -n "$kf" ] && [ -f "$kf" ]; then
             printf '  %s✓%s private key present\n' "$G" "$N"
-            actual=$(openssl rsa -pubout -outform DER -in "$kf" 2>/dev/null | openssl md5 -c | awk '{print $2}')
-            declared=$(grep -E '^\s*fingerprint' "$OCI_DIR/config" | head -1 | cut -d= -f2- | tr -d ' ')
-            if [ "$actual" = "$declared" ]; then
+            kmode=$(stat -c '%a' "$kf" 2>/dev/null || echo '?')
+            if [ "$kmode" = "600" ]; then
+                printf '  %s✓%s private key permission 600\n' "$G" "$N"
+            else
+                printf '  %s!%s private key permission %s (should be 600)\n' "$Y" "$N" "$kmode"
+            fi
+
+            actual=$(openssl rsa -pubout -outform DER -in "$kf" 2>/dev/null \
+                     | openssl md5 -c 2>/dev/null | awk '{print $2}') || actual=""
+            declared=$(config_value fingerprint)
+            if [ -z "$actual" ]; then
+                printf '  %s✗%s cannot read the private key (is it RSA?)\n' "$R" "$N"; fail=1
+            elif [ "$actual" = "$declared" ]; then
                 printf '  %s✓%s fingerprint matches the key\n' "$G" "$N"
             else
                 printf '  %s✗%s fingerprint mismatch\n' "$R" "$N"
                 printf '      config: %s\n      key:    %s\n' "$declared" "$actual"; fail=1
             fi
-        else
+        elif [ -n "$kf" ]; then
             printf '  %s✗%s private key not found at %s\n' "$R" "$N" "$kf"; fail=1
         fi
     else
@@ -272,11 +298,12 @@ if [ -d "$OCI_DIR" ]; then
     chmod 600 "$OCI_DIR"/config "$OCI_DIR"/*.pem 2>/dev/null || true
 
     if [ -f "$OCI_DIR/config" ]; then
-        kf=$(grep -E '^\s*key_file' "$OCI_DIR/config" | head -1 | cut -d= -f2- | tr -d ' ')
+        kf=$(config_value key_file)
         # A leading ~ or $HOME is not expanded by the Python SDK, so a
         # config that looks fine to a human still fails at runtime.
         tilde='~'
         case "$kf" in
+            "") warn "config has no key_file line" ;;
             /*) ;;
             "$tilde"/*|'$HOME'/*)
                 abs="$HOME/${kf#*/}"
