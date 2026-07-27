@@ -1,0 +1,127 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: Lint every script
+        run: shellcheck -S warning scripts/*.sh
+
+  safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: --help must never modify the system
+        run: |
+          for s in scripts/*.sh; do
+            bash "$s" --help >/dev/null || { echo "$s --help failed"; exit 1; }
+          done
+
+      - name: Unknown options are rejected
+        run: |
+          for s in scripts/*.sh; do
+            if bash "$s" --definitely-not-an-option >/dev/null 2>&1; then
+              echo "$s accepted a bogus option" >&2
+              exit 1
+            fi
+          done
+
+      - name: Installers refuse to run unattended without --yes
+        run: |
+          for s in scripts/server-bootstrap.sh scripts/termux-setup.sh; do
+            if bash "$s" --host 100.1.2.3 < /dev/null >/dev/null 2>&1; then
+              echo "$s ran unattended without --yes" >&2
+              exit 1
+            fi
+          done
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No private keys committed
+        run: |
+          if grep -rlE 'BEGIN (RSA |OPENSSH |EC |PGP )?PRIVATE KEY' . \
+             --exclude-dir=.git; then
+            echo "a private key is committed!" >&2
+            exit 1
+          fi
+          echo "no private keys"
+
+      - name: No real Tailscale auth keys
+        run: |
+          # tskey-auth- followed by actual key material, not a placeholder
+          if grep -rnE 'tskey-(auth|api)-[A-Za-z0-9]{10,}' . \
+             --exclude-dir=.git | grep -v REPLACE_ME; then
+            echo "a Tailscale key looks real!" >&2
+            exit 1
+          fi
+          echo "no live Tailscale keys"
+
+      - name: No real OCIDs
+        run: |
+          # A real OCID has a long base32 tail; placeholders say REPLACE_ME.
+          if grep -rnE 'ocid1\.(user|tenancy|compartment|subnet)\.oc1\.[a-z0-9-]*\.\.?[a-z0-9]{40,}' . \
+             --exclude-dir=.git | grep -v REPLACE_ME; then
+            echo "a real-looking OCID is committed!" >&2
+            exit 1
+          fi
+          echo "no real OCIDs"
+
+      - name: No key fingerprints
+        run: |
+          if grep -rnE '^[^#]*\b([0-9a-f]{2}:){15}[0-9a-f]{2}\b' . \
+             --exclude-dir=.git \
+             | grep -viE 'aa:bb:cc|example|placeholder'; then
+            echo "an API key fingerprint is committed!" >&2
+            exit 1
+          fi
+          echo "no fingerprints"
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Internal links resolve
+        run: |
+          fail=0
+          while IFS= read -r line; do
+            src="${line%%:*}"
+            target="${line#*:}"
+            dir="$(dirname "$src")"
+            # strip any #anchor
+            path="${target%%#*}"
+            [ -z "$path" ] && continue
+            case "$path" in http*) continue ;; esac
+            if [ ! -e "$dir/$path" ] && [ ! -e "$path" ]; then
+              echo "broken link in $src -> $target" >&2
+              fail=1
+            fi
+          done < <(grep -rhoE '\[[^]]+\]\(([^)]+)\)' --include='*.md' . \
+                   | sed -E 's/.*\((.*)\)/\1/' \
+                   | while read -r t; do
+                       grep -rl "]($t)" --include='*.md' . | while read -r f; do
+                         echo "$f:$t"
+                       done
+                     done)
+          exit $fail
+
+      - name: Every doc referenced by the README exists
+        run: |
+          for n in 01-tailscale-server 02-docker-server 03-termux-setup \
+                   04-connect 05-workloads 06-troubleshooting \
+                   07-oci-vs-aws 08-security; do
+            test -f "docs/$n.md" || { echo "missing docs/$n.md" >&2; exit 1; }
+          done
+          echo "all chapters present"

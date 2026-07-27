@@ -1,0 +1,50 @@
+# Credentials — never commit these.
+*.pem
+*.key
+*.ppk
+id_rsa*
+id_ed25519*
+id_ecdsa*
+*.pub
+!examples/*.pub.example
+
+# Cloud provider config
+.oci/
+oci_api_key*
+.aws/
+credentials
+config.json
+
+# Tailscale
+tskey-*
+*.tskey
+tailscaled.state
+
+# Environment files
+.env
+.env.*
+!.env.example
+*.env
+!example.env
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Secrets directories
+secrets/
+!examples/secrets/.gitkeep
+
+# Editors and OS
+*.swp
+*~
+.DS_Store
+.idea/
+.vscode/
+
+# Build and cache
+*.log
+*.tmp
+__pycache__/
+.venv/
+node_modules/

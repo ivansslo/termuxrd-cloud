@@ -1,0 +1,91 @@
+# Nextcloud on a cloud VM, reachable only over your tailnet.
+#
+# Put this on the VM, e.g. ~/stacks/nextcloud/compose.yaml, then drive it
+# from your phone:
+#
+#   dc -f ~/stacks/nextcloud/compose.yaml up -d
+#
+# Create the secret files first — never inline passwords here:
+#
+#   mkdir -p secrets
+#   openssl rand -base64 32 > secrets/db_root.txt
+#   openssl rand -base64 32 > secrets/db_pass.txt
+#   chmod 600 secrets/*
+
+services:
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    command: >-
+      --transaction-isolation=READ-COMMITTED
+      --log-bin=binlog
+      --binlog-format=ROW
+    environment:
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root
+      MARIADB_DATABASE: nextcloud
+      MARIADB_USER: nextcloud
+      MARIADB_PASSWORD_FILE: /run/secrets/db_pass
+    volumes:
+      - db:/var/lib/mysql
+    secrets:
+      - db_root
+      - db_pass
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+
+  app:
+    image: nextcloud:stable-apache
+    restart: unless-stopped
+    ports:
+      # Bound to all interfaces, but the VM has no public ingress rule,
+      # so in practice this is reachable only over the tailnet.
+      # To be explicit, replace with:  "100.x.y.z:8080:80"
+      - "8080:80"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: nextcloud
+      MYSQL_USER: nextcloud
+      MYSQL_PASSWORD_FILE: /run/secrets/db_pass
+      REDIS_HOST: redis
+      # Nextcloud rejects requests for hosts not listed here.
+      # Add your tailnet IP and MagicDNS name.
+      NEXTCLOUD_TRUSTED_DOMAINS: "100.x.y.z myserver.your-tailnet.ts.net localhost"
+      OVERWRITEPROTOCOL: http
+    volumes:
+      - app:/var/www/html
+      - ./data:/var/www/html/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    secrets:
+      - db_pass
+
+  cron:
+    image: nextcloud:stable-apache
+    restart: unless-stopped
+    entrypoint: /cron.sh
+    volumes:
+      - app:/var/www/html
+      - ./data:/var/www/html/data
+    depends_on:
+      - db
+
+volumes:
+  db:
+  app:
+
+secrets:
+  db_root:
+    file: ./secrets/db_root.txt
+  db_pass:
+    file: ./secrets/db_pass.txt
