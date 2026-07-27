@@ -37,12 +37,45 @@ jobs:
 
       - name: Installers refuse to run unattended without --yes
         run: |
-          for s in scripts/server-bootstrap.sh scripts/termux-setup.sh; do
+          for s in scripts/server-bootstrap.sh scripts/termux-setup.sh \
+                   scripts/termux-oci-cli.sh; do
             if bash "$s" --host 100.1.2.3 < /dev/null >/dev/null 2>&1; then
               echo "$s ran unattended without --yes" >&2
               exit 1
             fi
           done
+
+  crc32c-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The crc32c build passes BOTH required CPU features
+        run: |
+          # +crc alone gets 20 errors down to 3 and still fails, because
+          # vmull_p64() needs 'aes' as well. Guard against a regression
+          # that drops +crypto.
+          if ! grep -q 'march=armv8-a+crc+crypto' scripts/termux-oci-cli.sh; then
+            echo "aarch64 crc32c flags must include +crc+crypto" >&2
+            exit 1
+          fi
+          echo "crc32c CPU flags correct"
+
+      - name: The pure-Python fallback computes correct CRC32C
+        run: |
+          python3 - <<'EOF'
+          import re, pathlib
+          src = pathlib.Path("scripts/termux-oci-cli.sh").read_text()
+          shim = re.search(r"PYSHIM'\n(.*?)\nPYSHIM", src, re.S)
+          assert shim, "fallback shim not found in the script"
+          ns = {}
+          exec(shim.group(1), ns)
+          # Reference vectors for CRC32C (Castagnoli).
+          assert ns["crc32c"](b"123456789") == 0xe3069283, "wrong checksum"
+          assert ns["crc32c"](b"") == 0x00000000, "wrong empty checksum"
+          assert ns["crc32c"](b"test") == 2258662080, "wrong test checksum"
+          print("fallback shim verified against reference vectors")
+          EOF
 
   secrets:
     runs-on: ubuntu-latest
@@ -121,7 +154,7 @@ jobs:
         run: |
           for n in 01-tailscale-server 02-docker-server 03-termux-setup \
                    04-connect 05-workloads 06-troubleshooting \
-                   07-oci-vs-aws 08-security; do
+                   07-oci-vs-aws 08-security 09-oci-cli-termux; do
             test -f "docs/$n.md" || { echo "missing docs/$n.md" >&2; exit 1; }
           done
           echo "all chapters present"
