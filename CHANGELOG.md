@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.2] — 2026-07-28
+
+### Fixed
+
+- **Unrecognised launch errors printed the least useful part of the
+  message.** The loop showed the last three lines of the CLI's output,
+  but OCI appends a timestamp and a generic troubleshooting URL, so the
+  `code`, `status` and `message` fields that name the actual problem
+  scrolled out of view. Errors are now parsed as JSON and those three
+  fields printed.
+- HTTP 429 / `TooManyRequests` is now recognised as rate limiting rather
+  than an unknown error, and backs off for 60 seconds instead of
+  hammering the API on the next tick.
+
 ## [1.3.1] — 2026-07-28
 
 ### Fixed
@@ -164,6 +178,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.3.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.2
 [1.3.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.1
 [1.3.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.0
 [1.2.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.1

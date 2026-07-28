@@ -213,9 +213,33 @@ except Exception:
                 warn "authentication failed"
                 printf '\n  Check with:  bash termux-oci-cli.sh --check\n\n' >&2
                 exit 1 ;;
+            *TooManyRequests*|*"status\": 429"*)
+                printf '%srate limited%s\n' "$Y" "$N" >&2
+                info "backing off 60s — OCI is throttling us"
+                sleep 60 ;;
             *)
                 printf '%serror%s\n' "$R" "$N" >&2
-                echo "$out" | tail -3 | sed 's/^/      /' >&2 ;;
+                # Show the fields that matter. The CLI appends a timestamp
+                # and a generic troubleshooting URL, so a blind `tail` hides
+                # the actual cause behind boilerplate.
+                echo "$out" | python3 -c '
+import json, re, sys
+raw = sys.stdin.read()
+shown = False
+m = re.search(r"\{.*\}", raw, re.S)
+if m:
+    try:
+        d = json.loads(m.group())
+        for key in ("code", "status", "message"):
+            if d.get(key):
+                print(f"      {key}: {d[key]}")
+                shown = True
+    except Exception:
+        pass
+if not shown:
+    for line in raw.strip().splitlines()[:6]:
+        print("      " + line)
+' 2>/dev/null || echo "$out" | head -6 | sed 's/^/      /' >&2 ;;
         esac
     done
 
