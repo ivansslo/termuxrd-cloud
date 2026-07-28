@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.3.4] — 2026-07-28
+
+### Fixed
+
+- **`--list` crashed with `JSONDecodeError: Invalid control character`.**
+  The instance list was interpolated into the Python source with
+  `json.loads('''$json''')`, so any control character in the data broke
+  the parse. An instance's `ssh_authorized_keys` metadata ends with a
+  literal newline, which triggered it on every real instance. The JSON
+  now arrives on stdin, where the parser handles it correctly.
+- A parse failure is now reported instead of dumping a traceback.
+
 ## [1.3.3] — 2026-07-28
 
 ### Fixed
@@ -199,6 +211,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.3.4]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.4
 [1.3.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.3
 [1.3.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.2
 [1.3.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.1

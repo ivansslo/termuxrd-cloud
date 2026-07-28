@@ -93,37 +93,45 @@ list_instances() {
 
     printf '\n  %sRunning instances%s\n\n' "$B" "$N"
 
-    python3 - <<PY
+    # JSON arrives on stdin. Interpolating it into the Python source
+    # breaks on any control character, and an instance's
+    # ssh_authorized_keys metadata ends with a literal newline — exactly
+    # that case.
+    printf '%s' "$json" | python3 -c '
 import json, subprocess, sys
-data = json.loads('''$json''' or '{"data":[]}')
+
+try:
+    data = json.load(sys.stdin)
+except Exception as exc:
+    print("    could not parse the instance list: %s" % exc)
+    sys.exit(0)
+
 items = data.get("data", [])
 if not items:
     print("    none running")
     sys.exit(0)
+
 for inst in items:
-    name = inst.get("display-name", "?")
+    print("    %s" % inst.get("display-name", "?"))
+    print("      shape  : %s" % inst.get("shape", "?"))
     ocid = inst.get("id", "")
-    shape = inst.get("shape", "?")
-    print(f"    {name}")
-    print(f"      shape : {shape}")
     try:
         out = subprocess.run(
             ["oci", "compute", "instance", "list-vnics", "--instance-id", ocid],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, timeout=90,
         )
-        vnics = json.loads(out.stdout).get("data", []) if out.stdout else []
+        vnics = json.loads(out.stdout).get("data", []) if out.stdout.strip() else []
         for v in vnics:
-            pub = v.get("public-ip")
-            priv = v.get("private-ip")
-            if pub:
-                print(f"      public: {pub}")
-            if priv:
-                print(f"      private: {priv}")
+            if v.get("public-ip"):
+                print("      public : %s" % v["public-ip"])
+            if v.get("private-ip"):
+                print("      private: %s" % v["private-ip"])
     except Exception:
         print("      (could not read IPs)")
-    print(f"      ocid  : {ocid[:50]}…")
+    print("      ocid   : %s..." % ocid[:50])
     print()
-PY
+'
+
 }
 
 # ---------------------------------------------------------------------
