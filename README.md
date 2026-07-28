@@ -55,6 +55,7 @@ rootd caps
 | 8 | [Security](docs/08-security.md) | read it |
 | 9 | [OCI CLI on Termux](docs/09-oci-cli-termux.md) | 10 min |
 | 10 | [SSH into an OCI VM](docs/10-ssh-into-oci-vm.md) | 10 min |
+| 11 | [Always Free ARM capacity](docs/11-free-tier-capacity.md) | read when stuck |
 
 New to this? Follow 1 → 4 in order. It takes about 45 minutes.
 

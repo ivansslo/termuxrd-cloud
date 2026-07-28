@@ -55,6 +55,11 @@ warn() { printf '%swarning:%s %s\n' "$Y" "$N" "$*" >&2; }
 die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
 command -v oci >/dev/null 2>&1 || die "oci not found — run: bash termux-oci-cli.sh"
+
+if [ "$INTERVAL" -lt 300 ] 2>/dev/null; then
+    warn "an interval under 5 minutes invites rate limiting"
+    warn "throttled requests never reach the capacity check at all"
+fi
 [ -f "$KEY_PUB" ] || die "no public key at $KEY_PUB — run: ssh-keygen -t ed25519"
 
 # ---------------------------------------------------------------------
@@ -137,6 +142,7 @@ WAKE
 # ---------------------------------------------------------------------
 
 attempt=0
+throttled=0
 start=$(date +%s)
 
 while :; do
@@ -200,6 +206,8 @@ except Exception:
 
         case "$out" in
             *"Out of capacity"*|*"Out of host capacity"*)
+                # A real answer: we are not throttled any more.
+                throttled=0
                 printf '%sno capacity%s\n' "$Y" "$N" >&2 ;;
             *LimitExceeded*|*"limit"*)
                 printf '%sQUOTA%s\n\n' "$R" "$N" >&2
@@ -213,10 +221,24 @@ except Exception:
                 warn "authentication failed"
                 printf '\n  Check with:  bash termux-oci-cli.sh --check\n\n' >&2
                 exit 1 ;;
-            *TooManyRequests*|*"status\": 429"*)
+            *TooManyRequests*|*"status\": 429"*|*"status\":429"*)
+                throttled=$((throttled + 1))
+                # Retrying soon after a 429 usually extends the penalty
+                # rather than shortening it, so back off geometrically:
+                # 2, 4, 8, 16 minutes, capped at 30.
+                backoff=$(( 120 * (2 ** (throttled - 1)) ))
+                [ "$backoff" -gt 1800 ] && backoff=1800
                 printf '%srate limited%s\n' "$Y" "$N" >&2
-                info "backing off 60s — OCI is throttling us"
-                sleep 60 ;;
+                warn "throttled ${throttled}x — waiting $((backoff / 60)) min"
+                if [ "$throttled" -eq 3 ]; then
+                    printf '\n' >&2
+                    warn "sustained throttling means capacity is never even checked"
+                    printf '  Stop for an hour, then resume with --interval 1800.\n' >&2
+                    printf '  Or take an E2.1.Micro now and add ARM later:\n' >&2
+                    printf '    %sdocs/11-free-tier-capacity.md%s\n\n' "$C" "$N" >&2
+                fi
+                sleep "$backoff"
+                continue ;;
             *)
                 printf '%serror%s\n' "$R" "$N" >&2
                 # Show the fields that matter. The CLI appends a timestamp

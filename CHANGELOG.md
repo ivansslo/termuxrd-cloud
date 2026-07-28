@@ -1,5 +1,26 @@
 # Changelog
 
+## [1.3.3] — 2026-07-28
+
+### Fixed
+
+- **The 60-second backoff after a 429 made throttling worse.** Retrying
+  soon after being rate limited typically extends the penalty. Backoff
+  is now geometric — 2, 4, 8, 16, capped at 30 minutes — and resets once
+  a request is genuinely answered.
+- After three consecutive throttles the script says plainly that
+  capacity is no longer being checked at all, and points at the
+  alternatives instead of looping quietly.
+- Warns when `--interval` is under five minutes, which invites the
+  throttling it is trying to outrun.
+
+### Added
+
+- **`docs/11-free-tier-capacity.md`** — distinguishes `no capacity`
+  (request answered, keep waiting) from `rate limited` (request refused,
+  stop), and covers the x86 `E2.1.Micro` fallback that is nearly always
+  available and can run alongside an ARM instance later.
+
 ## [1.3.2] — 2026-07-28
 
 ### Fixed
@@ -178,6 +199,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.3.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.3
 [1.3.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.2
 [1.3.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.1
 [1.3.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.0
