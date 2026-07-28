@@ -154,7 +154,8 @@ jobs:
         run: |
           for n in 01-tailscale-server 02-docker-server 03-termux-setup \
                    04-connect 05-workloads 06-troubleshooting \
-                   07-oci-vs-aws 08-security 09-oci-cli-termux; do
+                   07-oci-vs-aws 08-security 09-oci-cli-termux \
+                   10-ssh-into-oci-vm; do
             test -f "docs/$n.md" || { echo "missing docs/$n.md" >&2; exit 1; }
           done
           echo "all chapters present"

@@ -54,6 +54,7 @@ rootd caps
 | 7 | [OCI vs AWS differences](docs/07-oci-vs-aws.md) | — |
 | 8 | [Security](docs/08-security.md) | read it |
 | 9 | [OCI CLI on Termux](docs/09-oci-cli-termux.md) | 10 min |
+| 10 | [SSH into an OCI VM](docs/10-ssh-into-oci-vm.md) | 10 min |
 
 New to this? Follow 1 → 4 in order. It takes about 45 minutes.
 
@@ -116,6 +117,7 @@ that advice applies to every script, including these.
 | [`scripts/termux-setup.sh`](scripts/termux-setup.sh) | phone | termuxrd + SSH key + client wiring |
 | [`scripts/healthcheck.sh`](scripts/healthcheck.sh) | phone | diagnose a broken link |
 | [`scripts/termux-oci-cli.sh`](scripts/termux-oci-cli.sh) | phone | install the OCI CLI (Oracle's installer cannot) |
+| [`scripts/oci-vm-connect.sh`](scripts/oci-vm-connect.sh) | phone | find OCI instances and SSH in |
 
 ---
 

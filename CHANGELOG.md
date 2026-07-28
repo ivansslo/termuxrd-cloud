@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.2.0] — 2026-07-28
+
+### Added
+
+- **`scripts/oci-vm-connect.sh`** — lists your OCI instances with their
+  public and private IPs via the CLI, generates or reuses an SSH key,
+  prints the exact line to authorise on the VM, and connects with
+  keepalives suited to a mobile connection.
+- **`docs/10-ssh-into-oci-vm.md`** — getting a real terminal instead of
+  the browser console, including how to copy logs out (clipboard, files,
+  `scp`) and how to survive a dropped signal with `tmux`.
+
+### Note
+
+The chapter opens by separating the two credentials people routinely
+confuse: the **API signing key** (`~/.oci/oci_api_key.pem`, for the CLI)
+and the **SSH key** (`~/.ssh/id_ed25519`, for shell access). They are
+not interchangeable, and reusing one for both is a bad idea even where
+the maths allows it.
+
 ## [1.1.3] — 2026-07-27
 
 ### Fixed
@@ -97,6 +117,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.2.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.0
 [1.1.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.3
 [1.1.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.2
 [1.1.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.1
