@@ -67,17 +67,38 @@ bash scripts/oci-vm-connect.sh --setup-key
 Membuat `~/.ssh/id_ed25519` bila belum ada, lalu mencetak perintah yang
 tinggal Anda tempel di VM.
 
+### ⚠️ Cloud Shell BUKAN VM Anda
+
+Kesalahan paling sering. Cloud Shell adalah mesin terpisah milik Oracle,
+bukan instance Anda. Menambahkan kunci di sana **tidak memberi akses apa
+pun** ke VM.
+
+Perhatikan prompt:
+
+```
+ivansuselo@cloudshell:~ (ap-singapore-1)$     ← Cloud Shell, SALAH
+opc@roc-vm:~$                                  ← VM Anda, BENAR
+```
+
+Kunci harus masuk ke `~/.ssh/authorized_keys` **di VM**.
+
 ### Mendaftarkan kunci di VM
 
 Anda perlu masuk **sekali** untuk mendaftarkannya. Tiga cara:
 
-**a. Cloud Shell** (paling mudah) — ikon `>_` di cloud.oracle.com. Sudah
-terautentikasi. Tapi Cloud Shell adalah mesin terpisah, jadi dari sana
-Anda tetap perlu SSH ke VM:
+**a. Cloud Shell sebagai batu loncatan.** Buka Cloud Shell, lalu SSH
+dari sana ke VM. Ini tetap butuh kunci yang sudah dikenal VM — yaitu
+kunci yang Anda pilih saat membuat instance:
 
 ```bash
-ssh opc@<private-ip>       # Cloud Shell satu VCN dengan VM Anda
+# DI CLOUD SHELL
+ssh -i ~/kunci-instance.key opc@<private-ip>
+# sekarang prompt berubah jadi opc@roc-vm — barulah tempel kuncinya
 ```
+
+Cloud Shell berada di VCN yang sama, jadi IP privat bisa dipakai.
+Kalau kunci instance tidak ada di Cloud Shell, unggah lewat menu
+**Cloud Shell → Upload**.
 
 **b. Browser console** — Compute → Instance → Console connection. Repot
 untuk mengetik, tapi cukup untuk satu baris `echo`.
@@ -247,6 +268,13 @@ Biasanya: user salah, kunci belum di `authorized_keys`, atau permission
 
 **`Connection timed out`** — Security List belum mengizinkan port 22,
 atau IP-nya salah. Cek ulang dengan `--list`.
+
+**Anda memakai IP privat.** `10.x`, `172.16–31.x` dan `192.168.x` hanya
+bisa dijangkau dari dalam VCN — bukan dari HP. Pakai IP publik, atau
+Tailscale.
+
+**Kunci ditambahkan di Cloud Shell, bukan di VM.** Penyebab paling
+umum. Lihat peringatan di atas.
 
 **`Host key verification failed`** — VM dibangun ulang:
 

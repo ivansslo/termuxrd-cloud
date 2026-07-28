@@ -142,12 +142,22 @@ setup_key() {
     fi
     chmod 600 "$KEY_PATH"
 
-    printf '\n  %sAuthorise this key on the VM%s\n\n' "$B" "$N"
-    printf '  Paste this line into the VM (Cloud Shell works):\n\n'
+    printf '\n  %sAuthorise this key ON THE VM%s\n\n' "$B" "$N"
+    printf '  %sNot in Cloud Shell.%s Cloud Shell is a separate machine; a key\n' "$R" "$N"
+    printf '  added there gives you nothing on your instance.\n\n'
+    printf '  Your shell prompt must show the VM, for example:\n'
+    printf '    %sopc@roc-vm%s   or   %subuntu@myserver%s\n' "$C" "$N" "$C" "$N"
+    printf '  %snot%s  %sivansuselo@cloudshell%s\n\n' "$R" "$N" "$Y" "$N"
+    printf '  Once you are on the VM, run:\n\n'
     printf '    mkdir -p ~/.ssh && chmod 700 ~/.ssh\n'
     printf '    echo '"'"'%s'"'"' >> ~/.ssh/authorized_keys\n' "$(cat "$KEY_PATH.pub")"
     printf '    chmod 600 ~/.ssh/authorized_keys\n\n'
-    printf '  %sThen connect:%s\n\n' "$B" "$N"
+    printf '  %sHow do I get onto the VM the first time?%s\n' "$B" "$N"
+    printf '    Use the key you chose when you created the instance:\n'
+    printf '      ssh -i ~/.ssh/that-key.pem opc@<public-ip>\n'
+    printf '    From Cloud Shell you can hop in the same way, then paste the\n'
+    printf '    three lines above.\n\n'
+    printf '  %sThen, from Termux:%s\n\n' "$B" "$N"
     printf '    bash %s --connect <public-ip> --user %s\n\n' "$(basename "$0")" "$SSH_USER"
 }
 
@@ -165,11 +175,40 @@ connect() {
     step "connecting to $SSH_USER@$TARGET"
     info "first connection will ask you to trust the host key"
 
-    exec ssh -i "$KEY_PATH" \
+    case "$TARGET" in
+        10.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*|192.168.*)
+            warn "$TARGET is a private address"
+            warn "reachable from inside the VCN, not from your phone"
+            warn "use the public IP, or connect over Tailscale (chapter 1)"
+            ;;
+    esac
+
+    if ssh -i "$KEY_PATH" \
         -o StrictHostKeyChecking=accept-new \
         -o ServerAliveInterval=30 \
         -o ServerAliveCountMax=4 \
-        "$SSH_USER@$TARGET"
+        "$SSH_USER@$TARGET"; then
+        exit 0
+    fi
+
+    rc=$?
+    printf '\n' >&2
+    warn "connection failed (exit $rc)"
+    printf '\n  %sMost likely causes, in order:%s\n\n' "$B" "$N"
+    printf '    1. The key was authorised in Cloud Shell, not on the VM.\n'
+    printf '       Cloud Shell is a different machine. Check the prompt: it\n'
+    printf '       must read %s%s@<vm-name>%s, not %s...@cloudshell%s.\n\n' \
+        "$C" "$SSH_USER" "$N" "$Y" "$N"
+    printf '    2. Wrong login user. Try the others:\n'
+    printf '         opc       Oracle Linux\n'
+    printf '         ubuntu    Ubuntu\n'
+    printf '         ec2-user  Amazon Linux\n'
+    printf '       e.g.  bash %s --connect %s --user opc\n\n' "$(basename "$0")" "$TARGET"
+    printf '    3. Port 22 closed in the Security List for that subnet.\n\n'
+    printf '  Diagnose with:\n'
+    printf '    ssh -v -i %s %s@%s 2>&1 | grep -iE "offering|denied|authenticat"\n\n' \
+        "$KEY_PATH" "$SSH_USER" "$TARGET"
+    exit "$rc"
 }
 
 case "$ACTION" in

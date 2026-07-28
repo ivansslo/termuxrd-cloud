@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.2.1] — 2026-07-28
+
+### Fixed
+
+- **`--setup-key` implied Cloud Shell was a valid place to authorise the
+  key.** It said "paste this into the VM (Cloud Shell works)", which
+  reads as though Cloud Shell *is* the VM. It is a separate Oracle
+  machine, so a key added there grants nothing on your instance —
+  and the resulting `Permission denied (publickey)` gives no clue why.
+  The instructions now show the difference in prompts and explain how to
+  reach the VM the first time.
+- `--connect` warns when given an RFC 1918 address (`10.x`,
+  `172.16-31.x`, `192.168.x`), which is only reachable from inside the
+  VCN.
+- A failed connection now lists the likely causes in order, with the
+  `ssh -v` command to confirm.
+
 ## [1.2.0] — 2026-07-28
 
 ### Added
@@ -117,6 +134,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.2.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.1
 [1.2.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.0
 [1.1.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.3
 [1.1.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.2
