@@ -118,6 +118,7 @@ that advice applies to every script, including these.
 | [`scripts/healthcheck.sh`](scripts/healthcheck.sh) | phone | diagnose a broken link |
 | [`scripts/termux-oci-cli.sh`](scripts/termux-oci-cli.sh) | phone | install the OCI CLI (Oracle's installer cannot) |
 | [`scripts/oci-vm-connect.sh`](scripts/oci-vm-connect.sh) | phone | find OCI instances and SSH in |
+| [`scripts/oci-grab-arm.sh`](scripts/oci-grab-arm.sh) | phone | retry until Always Free ARM capacity appears |
 
 ---
 

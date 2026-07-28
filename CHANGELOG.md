@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0] — 2026-07-28
+
+### Added
+
+- **`scripts/oci-grab-arm.sh`** — retries an Always Free Ampere launch
+  until Oracle has capacity. `Out of capacity for shape
+  VM.Standard.A1.Flex` is not a misconfiguration; the free ARM pool in
+  popular regions is simply contended, and the fix is to keep asking.
+
+  Cycles through every availability domain, tells quota and auth
+  failures apart from capacity failures and stops immediately on those,
+  and fires a Termux notification plus vibration when it wins.
+
 ## [1.2.1] — 2026-07-28
 
 ### Fixed
@@ -134,6 +147,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.3.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.0
 [1.2.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.1
 [1.2.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.0
 [1.1.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.1.3
