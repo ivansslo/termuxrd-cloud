@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0] — 2026-07-28
+
+### Added
+
+- **`--trust-host`** — writes a VM's SSH host key into a rootd box's
+  `known_hosts`, after showing the fingerprints and asking.
+
+  `docker --host ssh://...` runs `ssh -T`, and without a TTY ssh cannot
+  prompt about an unknown host — so the first connection always dies
+  with `Host key verification failed`. The container also keeps its own
+  `known_hosts`, so trusting the host from Termux does not help it.
+  Documented in `docs/04-connect.md` §4.3b.
+
+  The guide deliberately does not suggest `StrictHostKeyChecking=no`:
+  that turns off the protection against a man-in-the-middle, for a step
+  you perform once per host.
+
 ## [1.3.4] — 2026-07-28
 
 ### Fixed
@@ -211,6 +228,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.4.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.4.0
 [1.3.4]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.4
 [1.3.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.3
 [1.3.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.2

@@ -77,6 +77,44 @@ rootd docker docker
 
 ---
 
+## 4.3b Let the container trust the VM's host key
+
+Almost everyone hits this once:
+
+```
+error during connect: ... exited with exit status 255
+stderr=Host key verification failed.
+```
+
+Two things combine to cause it:
+
+- `docker --host ssh://...` runs `ssh -T ... docker system dial-stdio`.
+  With **no TTY**, ssh cannot ask *"trust this host?"* — it just fails.
+- The container keeps its **own** `known_hosts`. Verifying the host from
+  Termux earlier did nothing for the box.
+
+Fix it once:
+
+```bash
+bash scripts/oci-vm-connect.sh --trust-host 100.x.y.z
+```
+
+It shows the fingerprints, asks you to confirm, then writes them into
+the container's `known_hosts`.
+
+By hand, if you prefer:
+
+```bash
+ssh-keyscan -T 10 100.x.y.z | \
+  rootd sh docker -- sh -c 'mkdir -p /root/.ssh && cat >> /root/.ssh/known_hosts'
+```
+
+> Do not reach for `StrictHostKeyChecking=no`. It disables the check
+> that would warn you about a man-in-the-middle, and you only need to do
+> this once per host.
+
+---
+
 ## 4.4 The moment of truth
 
 ```bash

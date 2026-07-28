@@ -9,6 +9,7 @@
 #   bash oci-vm-connect.sh --list            list instances and IPs
 #   bash oci-vm-connect.sh --setup-key       create/show an SSH key to authorise
 #   bash oci-vm-connect.sh --connect <ip>    ssh in
+#   bash oci-vm-connect.sh --trust-host <ip> let a rootd box trust the VM
 #
 # Requires a working OCI CLI:  bash termux-oci-cli.sh --check
 #
@@ -17,6 +18,7 @@ set -euo pipefail
 ACTION=""
 TARGET=""
 SSH_USER="ubuntu"
+BOX="docker"
 KEY_PATH="$HOME/.ssh/id_ed25519"
 COMPARTMENT=""
 
@@ -32,6 +34,15 @@ while [ $# -gt 0 ]; do
             fi
             shift; TARGET="$1" ;;
         --connect=*)   ACTION="connect"; TARGET="${1#*=}" ;;
+        --trust-host)
+            ACTION="trusthost"
+            if [ $# -lt 2 ] || case "${2:-}" in -*) true ;; *) false ;; esac; then
+                echo "error: --trust-host needs an address" >&2; exit 2
+            fi
+            shift; TARGET="$1" ;;
+        --trust-host=*) ACTION="trusthost"; TARGET="${1#*=}" ;;
+        --box)         shift; BOX="${1:-docker}" ;;
+        --box=*)       BOX="${1#*=}" ;;
         --user)        shift; SSH_USER="${1:-ubuntu}" ;;
         --user=*)      SSH_USER="${1#*=}" ;;
         --key)         shift; KEY_PATH="${1:-$KEY_PATH}" ;;
@@ -45,9 +56,9 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -t 2 ] && [ -z "${NO_COLOR:-}" ]; then
-    G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; C=$'\033[36m'; B=$'\033[1m'; N=$'\033[0m'
+    G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; C=$'\033[36m'; D=$'\033[2m'; B=$'\033[1m'; N=$'\033[0m'
 else
-    G=""; Y=""; R=""; C=""; B=""; N=""
+    G=""; Y=""; R=""; C=""; D=""; B=""; N=""
 fi
 step() { printf '%s=>%s %s\n' "$G" "$N" "$*" >&2; }
 info() { printf '%s::%s %s\n' "$C" "$N" "$*" >&2; }
@@ -219,8 +230,53 @@ connect() {
     exit "$rc"
 }
 
+# ---------------------------------------------------------------------
+# trust-host: teach a rootd box the VM's host key
+# ---------------------------------------------------------------------
+#
+# `docker --host ssh://...` runs `ssh -T ... docker system dial-stdio`.
+# With no TTY, ssh cannot ask whether to trust an unknown host key, so
+# the very first connection fails with "Host key verification failed".
+#
+# The container also keeps its own known_hosts, separate from Termux's —
+# verifying the host in Termux does nothing for the box.
+trust_host() {
+    local box="${BOX:-docker}"
+    [ -n "$TARGET" ] || die "give an address: --trust-host 100.x.y.z"
+
+    command -v rootd >/dev/null 2>&1 || die "rootd not found"
+    rootd ls --plain 2>/dev/null | grep -qx "$box" \
+        || die "no container named '$box' (use --box NAME)"
+
+    step "fetching the host key for $TARGET"
+    local keys
+    keys=$(ssh-keyscan -T 10 "$TARGET" 2>/dev/null)
+    [ -n "$keys" ] || die "no host key returned — is $TARGET reachable?"
+
+    printf '\n  %sFingerprints offered by %s:%s\n\n' "$B" "$TARGET" "$N"
+    printf '%s' "$keys" | ssh-keygen -lf - 2>/dev/null | sed 's/^/    /'
+    printf '\n  %sCompare these with what you saw when you first ssh-ed in.%s\n' "$D" "$N"
+
+    if [ -t 0 ]; then
+        printf '\n  Trust them? [y/N] ' >&2
+        read -r reply || reply=""
+        case "$reply" in [Yy]*) ;; *) echo "  aborted" >&2; exit 1 ;; esac
+    fi
+
+    rootd sh "$box" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' \
+        || die "could not prepare /root/.ssh inside '$box'"
+
+    printf '%s\n' "$keys" | rootd sh "$box" -- \
+        sh -c 'cat >> /root/.ssh/known_hosts && chmod 600 /root/.ssh/known_hosts' \
+        || die "could not write known_hosts inside '$box'"
+
+    step "'$box' now trusts $TARGET"
+    printf '\n  Try it:\n    rootd sh %s -- docker version\n\n' "$box" >&2
+}
+
 case "$ACTION" in
-    list)     list_instances ;;
-    setupkey) setup_key ;;
-    connect)  connect ;;
+    list)       list_instances ;;
+    setupkey)   setup_key ;;
+    connect)    connect ;;
+    trusthost)  trust_host ;;
 esac
