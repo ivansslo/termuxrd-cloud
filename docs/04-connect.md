@@ -102,12 +102,22 @@ bash scripts/oci-vm-connect.sh --trust-host 100.x.y.z
 It shows the fingerprints, asks you to confirm, then writes them into
 the container's `known_hosts`.
 
+It copies the key **you already verified** out of Termux's own
+`known_hosts`, so there is nothing new to approve.
+
 By hand, if you prefer:
 
 ```bash
-ssh-keyscan -T 10 100.x.y.z | \
+ssh-keygen -F 100.x.y.z | grep -v '^#' | \
   rootd sh docker -- sh -c 'mkdir -p /root/.ssh && cat >> /root/.ssh/known_hosts'
 ```
+
+> Note what this deliberately avoids. A plain `ssh-keyscan 100.x.y.z`
+> returns *every* host key the server offers — RSA, ECDSA and Ed25519 —
+> but you only ever verified one of them. Trusting all three means
+> accepting two fingerprints you have never seen, which is exactly the
+> check you are trying not to skip. If no local record exists, the
+> script scans for a single key type and makes you confirm it.
 
 > Do not reach for `StrictHostKeyChecking=no`. It disables the check
 > that would warn you about a man-in-the-middle, and you only need to do

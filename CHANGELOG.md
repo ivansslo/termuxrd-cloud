@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.4.1] — 2026-07-28
+
+### Fixed
+
+- **`--trust-host` asked you to trust keys you had never verified.** It
+  ran a bare `ssh-keyscan`, which returns every host key the server
+  offers — RSA, ECDSA and Ed25519 — while a user has typically verified
+  only the one ssh showed on first connection. Approving all three
+  accepts two unverified fingerprints, defeating the check.
+
+  It now reads the key out of Termux's own `known_hosts` first, so the
+  common path approves nothing new. Only when no record exists does it
+  scan, and then for a single key type (`--key-type`, default ed25519),
+  with the fingerprint shown and confirmation required. It refuses to
+  trust an unverified key non-interactively.
+
+  Reported by a user who noticed the extra fingerprints.
+
 ## [1.4.0] — 2026-07-28
 
 ### Added
@@ -228,6 +246,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.4.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.4.1
 [1.4.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.4.0
 [1.3.4]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.4
 [1.3.3]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.3

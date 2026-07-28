@@ -19,6 +19,7 @@ ACTION=""
 TARGET=""
 SSH_USER="ubuntu"
 BOX="docker"
+KEY_TYPE="ed25519"
 KEY_PATH="$HOME/.ssh/id_ed25519"
 COMPARTMENT=""
 
@@ -43,6 +44,8 @@ while [ $# -gt 0 ]; do
         --trust-host=*) ACTION="trusthost"; TARGET="${1#*=}" ;;
         --box)         shift; BOX="${1:-docker}" ;;
         --box=*)       BOX="${1#*=}" ;;
+        --key-type)    shift; KEY_TYPE="${1:-ed25519}" ;;
+        --key-type=*)  KEY_TYPE="${1#*=}" ;;
         --user)        shift; SSH_USER="${1:-ubuntu}" ;;
         --user=*)      SSH_USER="${1#*=}" ;;
         --key)         shift; KEY_PATH="${1:-$KEY_PATH}" ;;
@@ -248,19 +251,45 @@ trust_host() {
     rootd ls --plain 2>/dev/null | grep -qx "$box" \
         || die "no container named '$box' (use --box NAME)"
 
-    step "fetching the host key for $TARGET"
-    local keys
-    keys=$(ssh-keyscan -T 10 "$TARGET" 2>/dev/null)
-    [ -n "$keys" ] || die "no host key returned — is $TARGET reachable?"
+    local keys=""
 
-    printf '\n  %sFingerprints offered by %s:%s\n\n' "$B" "$TARGET" "$N"
-    printf '%s' "$keys" | ssh-keygen -lf - 2>/dev/null | sed 's/^/    /'
-    printf '\n  %sCompare these with what you saw when you first ssh-ed in.%s\n' "$D" "$N"
+    # Prefer the key you already verified. Termux's own known_hosts holds
+    # exactly the key ssh accepted when you first connected, so copying
+    # that across asks you to trust nothing new.
+    if [ -f "$HOME/.ssh/known_hosts" ]; then
+        keys=$(ssh-keygen -F "$TARGET" -f "$HOME/.ssh/known_hosts" 2>/dev/null \
+               | grep -v '^#' || true)
+    fi
 
-    if [ -t 0 ]; then
-        printf '\n  Trust them? [y/N] ' >&2
-        read -r reply || reply=""
-        case "$reply" in [Yy]*) ;; *) echo "  aborted" >&2; exit 1 ;; esac
+    if [ -n "$keys" ]; then
+        step "reusing the host key you already verified"
+        printf '\n' >&2
+        printf '%s' "$keys" | ssh-keygen -lf - 2>/dev/null | sed 's/^/    /' >&2
+        printf '\n  %sTaken from your Termux known_hosts — nothing new to approve.%s\n\n' \
+            "$D" "$N" >&2
+    else
+        # Nothing on file. Scan, but take only one key type: fetching every
+        # type would have you approve keys you have never seen, which
+        # defeats the point of checking.
+        step "no local record — scanning $TARGET for its $KEY_TYPE key"
+        keys=$(ssh-keyscan -t "$KEY_TYPE" -T 10 "$TARGET" 2>/dev/null | grep -v '^#' || true)
+        [ -n "$keys" ] || die "no $KEY_TYPE host key from $TARGET (try --key-type rsa)"
+
+        printf '\n  %sFingerprint offered by %s:%s\n\n' "$B" "$TARGET" "$N"
+        printf '%s' "$keys" | ssh-keygen -lf - 2>/dev/null | sed 's/^/    /' >&2
+        printf '\n  %sThis was fetched over the network and is unverified.%s\n' "$Y" "$N" >&2
+        printf '  %sCompare it against the fingerprint shown the first time you\n' "$D" >&2
+        printf '  ssh-ed in, or read it from the VM itself:%s\n\n' "$N" >&2
+        printf '    ssh %s@%s "ssh-keygen -lf /etc/ssh/ssh_host_%s_key.pub"\n\n' \
+            "$SSH_USER" "$TARGET" "$KEY_TYPE" >&2
+
+        if [ -t 0 ]; then
+            printf '  Does it match? [y/N] ' >&2
+            read -r reply || reply=""
+            case "$reply" in [Yy]*) ;; *) echo "  aborted" >&2; exit 1 ;; esac
+        else
+            die "refusing to trust an unverified key non-interactively"
+        fi
     fi
 
     rootd sh "$box" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' \
