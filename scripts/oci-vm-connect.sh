@@ -164,6 +164,29 @@ setup_key() {
     fi
     chmod 600 "$KEY_PATH"
 
+    # The Docker client runs inside a rootd box, which has its own
+    # /root/.ssh. A key that exists only in Termux leaves ssh inside the
+    # box with no identity — it then falls back to other auth methods and
+    # blocks on a prompt that can never be answered, because stdin is
+    # already carrying `docker system dial-stdio`. The symptom is a hang,
+    # not an error, so copy the key in at the same time.
+    if command -v rootd >/dev/null 2>&1 \
+       && rootd ls --plain 2>/dev/null | grep -qx "$BOX"; then
+        step "copying the key into the '$BOX' container"
+        rootd sh "$BOX" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' \
+            || warn "could not prepare /root/.ssh inside '$BOX'"
+        if rootd sh "$BOX" -- sh -c \
+             'cat > /root/.ssh/id_ed25519 && chmod 600 /root/.ssh/id_ed25519' \
+             < "$KEY_PATH"; then
+            info "private key installed in '$BOX'"
+        else
+            warn "could not copy the key into '$BOX'"
+        fi
+        printf '  %sThe key now exists in two places; rotating it means%s\n' "$D" "$N" >&2
+        printf '  %sreplacing both, and 'rootd backup %s' will contain it.%s\n' \
+            "$D" "$BOX" "$N" >&2
+    fi
+
     printf '\n  %sAuthorise this key ON THE VM%s\n\n' "$B" "$N"
     printf '  %sNot in Cloud Shell.%s Cloud Shell is a separate machine; a key\n' "$R" "$N"
     printf '  added there gives you nothing on your instance.\n\n'
@@ -300,6 +323,18 @@ trust_host() {
         || die "could not write known_hosts inside '$box'"
 
     step "'$box' now trusts $TARGET"
+
+    # Trusting the host is only half of it. Without a private key in the
+    # box, ssh has no identity and hangs instead of failing.
+    if ! rootd sh "$box" -- test -f /root/.ssh/id_ed25519 2>/dev/null; then
+        printf '\n' >&2
+        warn "'$box' has no private key — ssh will hang rather than fail"
+        printf '\n  Install it:\n' >&2
+        printf '    cat ~/.ssh/id_ed25519 | rootd sh %s -- \\\n' "$box" >&2
+        printf '      sh -c "cat > /root/.ssh/id_ed25519 && chmod 600 /root/.ssh/id_ed25519"\n' >&2
+        printf '\n  Or re-run:  bash %s --setup-key\n' "$(basename "$0")" >&2
+    fi
+
     printf '\n  Try it:\n    rootd sh %s -- docker version\n\n' "$box" >&2
 }
 

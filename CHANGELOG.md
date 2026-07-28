@@ -1,5 +1,28 @@
 # Changelog
 
+## [1.4.2] — 2026-07-28
+
+### Fixed
+
+- **`--setup-key` left the container without a private key**, so
+  `docker version` hung instead of failing. The key was written to
+  Termux's `~/.ssh/`, but the Docker client runs inside a rootd box with
+  its own `/root/.ssh`. Lacking an identity, ssh fell through to other
+  auth methods and blocked on a prompt that could never be answered,
+  because stdin was already carrying `docker system dial-stdio`.
+
+  `--setup-key` now installs the key in both places.
+
+- `--trust-host` warns when the box has no private key, since trusting
+  the host alone produces exactly that hang.
+- `healthcheck.sh` reports a missing container key as a distinct fault
+  and says it will manifest as a hang, not an error.
+
+### Added
+
+- `docs/04-connect.md` §4.3c — why a hang differs from an error here,
+  and how to get the real message with `BatchMode=yes`.
+
 ## [1.4.1] — 2026-07-28
 
 ### Fixed
@@ -246,6 +269,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.4.2]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.4.2
 [1.4.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.4.1
 [1.4.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.4.0
 [1.3.4]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.4

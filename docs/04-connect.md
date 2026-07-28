@@ -125,6 +125,51 @@ ssh-keygen -F 100.x.y.z | grep -v '^#' | \
 
 ---
 
+## 4.3c If `docker version` hangs instead of failing
+
+A hang is a different fault from an error, and it has one usual cause:
+**the container has no private key.**
+
+`--setup-key` writes to `~/.ssh/` in *Termux*. The Docker client runs
+inside a rootd box with its own `/root/.ssh`. With no identity to offer,
+ssh falls back to other authentication methods and waits for input that
+can never arrive — stdin is already carrying `docker system dial-stdio`.
+So it sits there rather than returning an error.
+
+Check:
+
+```bash
+rootd sh docker -- ls -la /root/.ssh
+```
+
+You need **both** files:
+
+| File | Put there by |
+|---|---|
+| `known_hosts` | `--trust-host` |
+| `id_ed25519` | `--setup-key` |
+
+If the key is missing:
+
+```bash
+cat ~/.ssh/id_ed25519 | rootd sh docker -- \
+  sh -c 'cat > /root/.ssh/id_ed25519 && chmod 600 /root/.ssh/id_ed25519'
+```
+
+To see the real error instead of a hang, force ssh to give up rather
+than prompt:
+
+```bash
+rootd sh docker -- ssh -o BatchMode=yes -o ConnectTimeout=10 \
+  ubuntu@100.x.y.z hostname
+```
+
+> The key now exists in Termux **and** in the box. Rotating it means
+> replacing both, and `rootd backup docker` will carry a copy inside the
+> archive — store that archive as carefully as the key.
+
+---
+
 ## 4.4 The moment of truth
 
 ```bash

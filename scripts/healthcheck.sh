@@ -117,7 +117,13 @@ printf '\n%s4. ssh%s\n' "$B" "$N"
 
 if [ -z "$VM_IP" ]; then
     skip "no VM address"
-elif rootd sh "$BOX" -- test -f /root/.ssh/id_ed25519 2>/dev/null; then
+elif ! rootd sh "$BOX" -- test -f /root/.ssh/id_ed25519 2>/dev/null; then
+    bad "no private key inside '$BOX'"
+    hint "ssh will HANG rather than fail: it has no identity to offer,"
+    hint "and cannot prompt because stdin carries docker dial-stdio"
+    hint "fix: cat ~/.ssh/id_ed25519 | rootd sh $BOX -- \\"
+    hint "       sh -c 'cat > /root/.ssh/id_ed25519 && chmod 600 /root/.ssh/id_ed25519'"
+elif true; then
     ok "SSH key exists in the container"
 
     if rootd sh "$BOX" -- ssh -o BatchMode=yes -o ConnectTimeout=10 \
