@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.1] — 2026-07-28
+
+### Fixed
+
+- Scripts lost their executable bit in an earlier commit. Restored, so
+  `./scripts/foo.sh` works again rather than only `bash scripts/foo.sh`.
+
+### Changed
+
+- `oci-grab-arm.sh` now recognises single-AD regions — Singapore has
+  exactly one — where rotating availability domains does nothing. It
+  says so and suggests the only lever that actually helps: asking for a
+  smaller shape. A 4-OCPU request needs four free cores on one host,
+  which is far rarer than one.
+- Prints a progress summary every twelfth pass so a long hunt does not
+  look like it has stalled.
+
 ## [1.3.0] — 2026-07-28
 
 ### Added
@@ -147,6 +164,7 @@ Reported and confirmed working on aarch64 Android by @ivansslo.
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.
 
+[1.3.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.1
 [1.3.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.3.0
 [1.2.1]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.1
 [1.2.0]: https://github.com/ivansslo/termuxrd-cloud/releases/tag/v1.2.0

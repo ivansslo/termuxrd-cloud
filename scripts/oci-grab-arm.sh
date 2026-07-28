@@ -103,10 +103,34 @@ cat >&2 <<PLAN
   Interval : ${INTERVAL}s
   Key      : $KEY_PUB
 
+PLAN
+
+# One AD means there is no domain to rotate through; the only lever left
+# is asking for a smaller slice. A 4-OCPU request needs four free cores
+# on a single host, which is far rarer than one.
+if [ "${#ADS[@]}" -eq 1 ] && [ "$OCPUS" -gt 1 ]; then
+    cat >&2 <<HINT
+  ${Y}Your region has a single availability domain${N}, so there is nothing
+  to rotate through. The only way to improve the odds is to ask for less.
+
+    ${C}bash $(basename "$0") --ocpus 1 --mem 6${N}
+
+  Always Free gives 4 OCPU and 24 GB in total, and it may be split:
+    1 x (4 OCPU, 24 GB)   hardest to place
+    2 x (2 OCPU, 12 GB)
+    4 x (1 OCPU,  6 GB)   easiest
+
+  You can enlarge an instance later with Edit shape, once capacity frees
+  up — and a 1 OCPU / 6 GB box already runs Docker and Tailscale fine.
+
+HINT
+fi
+
+cat >&2 <<WAKE
   ${C}Leave this running. Termux must stay awake:${N}
     termux-wake-lock          ${C}(and disable battery optimisation)${N}
 
-PLAN
+WAKE
 
 # ---------------------------------------------------------------------
 # attempt loop
@@ -194,6 +218,14 @@ except Exception:
                 echo "$out" | tail -3 | sed 's/^/      /' >&2 ;;
         esac
     done
+
+    if [ $((attempt % 12)) -eq 0 ]; then
+        mins=$(( ( $(date +%s) - start ) / 60 ))
+        info "still hunting — $attempt attempts over ${mins} min"
+        if [ "$OCPUS" -gt 1 ]; then
+            info "a smaller shape would land sooner: --ocpus 1 --mem 6"
+        fi
+    fi
 
     if [ "$ONCE" = 1 ]; then
         warn "no capacity on this pass; --once was given, stopping"
