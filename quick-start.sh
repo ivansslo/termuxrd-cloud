@@ -20,11 +20,12 @@ main_menu() {
     echo -e "5) ${C}Cloud VM Connection${N} (SSH & Config Manager)"
     echo -e "6) ${C}Local Box Tooling${N} (Tailscale & SSH via rootd-fs)"
     echo -e "7) ${C}Healthcheck${N} (Diagnose setup)"
+    echo -e "8) ${C}AI Agent Manager${N} (Deploy AI to VM)"
     echo -e "p) ${Y}Switch OCI Profile${N}"
     echo -e "q) Exit"
     echo
 
-    read -p "Select [1-7/p/q]: " pilihan
+    read -p "Select [1-8/p/q]: " pilihan
 
     case $pilihan in
         1) bash scripts/termux-setup.sh ;;
@@ -46,6 +47,7 @@ main_menu() {
         5) cloud_vm_menu ;;
         6) local_box_menu ;;
         7) bash scripts/healthcheck.sh ; read -p "Press Enter to continue..." ; main_menu ;;
+        8) ai_manager_menu ;;
         p) 
             echo -e "\n${B}Available OCI Profiles in ~/.oci/config:${N}"
             if [ -f "$HOME/.oci/config" ]; then
@@ -254,3 +256,29 @@ local_box_menu() {
 }
 
 main_menu
+
+ai_manager_menu() {
+    clear
+    echo -e "${B}AI Agent Manager (Ollama + Open WebUI)${N}"
+    echo -e "---------------------------------------"
+    echo -e "Target VM: ${Y}${DOCKER_HOST:-Not Set}${N}"
+    echo -e "---------------------------------------"
+    echo -e "1) ${G}Deploy AI Stack${N} (Ollama + WebUI)"
+    echo -e "2) ${C}Pull New Model${N} (Llama3, DeepSeek, etc)"
+    echo -e "3) ${C}Check AI Status${N} (Docker PS)"
+    echo -e "4) Stop AI Stack"
+    echo -e "b) Back to Main Menu"
+    echo
+    read -p "Option: " ai_opt
+    case $ai_opt in
+        1) bash scripts/deploy-ai.sh ;;
+        2)
+            read -p "Enter model name (e.g. llama3.1:8b): " m_name
+            rootd sh docker -- docker exec -it ollama ollama pull "$m_name" ;;
+        3) rootd sh docker -- docker ps | grep -E "ollama|open-webui" ;;
+        4) rootd sh docker -- docker compose -f ~/ai-stack/docker-compose.yaml down ;;
+        *) main_menu ;;
+    esac
+    read -p "Press Enter to continue..."
+    ai_manager_menu
+}
