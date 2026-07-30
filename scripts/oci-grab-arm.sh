@@ -199,7 +199,7 @@ while :; do
     for ad in "${ADS[@]}"; do
         printf '  [%s] try %d, %s ... ' "$(date +%H:%M:%S)" "$attempt" "$ad" >&2
 
-        out=$($OCI_CMD compute instance launch --availability-domain "$ad" --compartment-id "$COMP" --display-name "$NAME" --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEM}" --image-id "$IMAGE" --subnet-id "$SUBNET" --boot-volume-size-in-gbs "$BOOT_GB" --assign-public-ip true --ssh-authorized-keys-file "$KEY_PUB" --wait-for-state RUNNING 2>&1)
+        out=$(eval "$OCI_CMD compute instance launch --availability-domain "$ad" --compartment-id "$COMP" --display-name "$NAME" --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEM}" --image-id "$IMAGE" --subnet-id "$SUBNET" --boot-volume-size-in-gbs "$BOOT_GB" --assign-public-ip true --ssh-authorized-keys-file "$KEY_PUB" --wait-for-state RUNNING 2>&1")
         rc=$?
 
         if [ $rc -eq 0 ]; then

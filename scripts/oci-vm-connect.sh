@@ -134,7 +134,7 @@ list_instances() {
 
     local json
     json=$(eval "$OCI_CMD compute instance list --compartment-id \"$comp\" \
-             --lifecycle-state RUNNING --all 2>/dev/null) || {
+             --lifecycle-state RUNNING --all 2>/dev/null") || {
         warn "no instances in that compartment, or access denied"
         printf '\n  List your compartments with:\n'
         printf '    oci iam compartment list --output table\n\n'
