@@ -138,33 +138,41 @@ path = pathlib.Path(sys.argv[1])
 home = sys.argv[2]
 raw = path.read_text(encoding="utf-8", errors="replace")
 
-# Split on the key names themselves, so a file with no newlines is
-# recovered rather than rejected.
 KEYS = ("user", "fingerprint", "tenancy", "region", "key_file",
         "pass_phrase", "security_token_file", "delegation_token_file")
 
+# Standardize section headers
 text = re.sub(r"\[([A-Za-z0-9_-]+)\]", r"\n[\1]\n", raw)
+# Ensure keys are at the start of lines
 for key in KEYS:
     text = re.sub(rf"(?<![A-Za-z_]){key}\s*=", f"\n{key}=", text)
 
-profile, found = "DEFAULT", {}
+profiles = {}
+current_profile = "DEFAULT"
+
 for line in text.splitlines():
     line = line.strip()
     if not line or line.startswith(("#", ";")):
         continue
     m = re.fullmatch(r"\[([A-Za-z0-9_-]+)\]", line)
     if m:
-        profile = m.group(1)
+        current_profile = m.group(1)
+        if current_profile not in profiles:
+            profiles[current_profile] = {}
         continue
+    
     if "=" not in line:
         continue
+    
     key, _, value = line.partition("=")
     key = key.strip().lower()
     if key not in KEYS:
         continue
-    # Drop a trailing comment, then surrounding quotes.
+    
+    # Drop trailing comment and quotes
     value = re.split(r"\s+[#;]", value.strip(), maxsplit=1)[0].strip()
     value = value.strip().strip('"').strip("'").strip()
+    
     if key == "key_file":
         if value.startswith("~"):
             value = home + value[1:]
@@ -172,21 +180,27 @@ for line in text.splitlines():
             value = home + value[len("$HOME"):]
         if not value.startswith("/"):
             value = f"{home}/.oci/{value.lstrip('./')}"
-    if value:
-        found[key] = value
+    
+    if current_profile not in profiles:
+        profiles[current_profile] = {}
+    profiles[current_profile][key] = value
 
-missing = [k for k in ("user", "fingerprint", "tenancy", "region") if k not in found]
-if missing:
-    print(f"  could not recover: {', '.join(missing)}", file=sys.stderr)
-    sys.exit(1)
-
-found.setdefault("key_file", f"{home}/.oci/oci_api_key.pem")
-
+output = []
 order = ["user", "fingerprint", "tenancy", "region", "key_file", "pass_phrase"]
-out = ["[DEFAULT]"]
-out += [f"{k}={found[k]}" for k in order if k in found]
-path.write_text("\n".join(out) + "\n", encoding="utf-8")
-print("  rewrote with one key per line")
+
+for name, data in profiles.items():
+    if not data: continue
+    output.append(f"[{name}]")
+    for key in order:
+        if key in data:
+            output.append(f"{key}={data[key]}")
+    for key in sorted(data.keys()):
+        if key not in order:
+            output.append(f"{key}={data[key]}")
+    output.append("")
+
+path.write_text("\n".join(output), encoding="utf-8")
+print(f"  Repaired {len(profiles)} profiles")
 PYREPAIR
 
     chmod 600 "$CFG"

@@ -17,10 +17,13 @@ chmod +x quick-start.sh
 2.  **Pilih Menu 2 (Install OCI CLI)**: Jika Anda menggunakan Oracle Cloud.
 3.  **Konfigurasi OCI**: Jalankan `oci setup config` (jika diminta oleh skrip).
 4.  **Opsi 'p' (Switch Profile)**: Untuk beralih ke profil OCI lainnya jika Anda menggunakan Multi-Profile.
-5.  **Pilih Menu 3 (Hunt ARM)**: Untuk mencari kapasitas VM gratis yang sering penuh.
-6.  **Pilih Menu 5 (Local Box)**: Untuk setup Tailscale lokal di dalam box (jika diperlukan).
+5.  **Menu 3 (Import OCI Profile)**: Untuk menambahkan profil baru dari file `.env` tanpa merusak konfigurasi yang sudah ada.
+6.  **Pilih Menu 4 (Hunt ARM)**: Untuk mencari kapasitas VM gratis yang sering penuh.
+7.  **Pilih Menu 6 (Local Box)**: Untuk setup Tailscale lokal di dalam box (jika diperlukan).
 
 ## Perbaikan yang Dilakukan
+*   **Multi-Profile Support**: Skrip `termux-oci-cli.sh --repair-config` sekarang mendukung banyak profil. Sebelumnya, menjalankan ini akan menghapus semua profil kecuali satu.
+*   **OCI Import Tool**: Menambahkan `scripts/oci-env-to-config.sh` untuk menarik data dari file `.env` ke profil OCI tertentu.
 *   **Fix Syntax Errors**: Menghapus karakter non-standard (em-dash, smart quotes) yang sering kali muncul akibat copy-paste dan merusak parsing shell.
 *   **Safe Quick Menu**: Membuat file `quick-start.sh` sebagai hub pusat semua alat dalam repositori ini dan `rootd-fs`.
 

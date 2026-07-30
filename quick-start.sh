@@ -15,27 +15,37 @@ main_menu() {
     echo -e "------------------------------------"
     echo -e "1) ${C}Setup Termux${N} (Initial Android setup)"
     echo -e "2) ${C}Install OCI CLI${N} (Oracle Cloud management)"
-    echo -e "3) ${C}Hunt ARM Capacity${N} (Find Always Free VMs)"
-    echo -e "4) ${C}Cloud VM Connection${N} (SSH & Config Manager)"
-    echo -e "5) ${C}Local Box Tooling${N} (Tailscale & SSH via rootd-fs)"
-    echo -e "6) ${C}Healthcheck${N} (Diagnose setup)"
+    echo -e "3) ${C}Import OCI Profile from .env${N}"
+    echo -e "4) ${C}Hunt ARM Capacity${N} (Find Always Free VMs)"
+    echo -e "5) ${C}Cloud VM Connection${N} (SSH & Config Manager)"
+    echo -e "6) ${C}Local Box Tooling${N} (Tailscale & SSH via rootd-fs)"
+    echo -e "7) ${C}Healthcheck${N} (Diagnose setup)"
     echo -e "p) ${Y}Switch OCI Profile${N}"
     echo -e "q) Exit"
     echo
 
-    read -p "Select [1-6/p/q]: " pilihan
+    read -p "Select [1-7/p/q]: " pilihan
 
     case $pilihan in
         1) bash scripts/termux-setup.sh ;;
         2) bash scripts/termux-oci-cli.sh ;;
-        3) 
+        3)
+            read -p "Path to .env file (e.g. ~/.env): " env_path
+            read -p "New Profile Name: " prof_name
+            if [ -n "$env_path" ] && [ -n "$prof_name" ]; then
+                bash scripts/oci-env-to-config.sh "$env_path" "$prof_name"
+                read -p "Press Enter to continue..."
+            fi
+            main_menu
+            ;;
+        4) 
             bash scripts/oci-grab-arm.sh --profile "$OCI_PROFILE"
             read -p "Press Enter to continue..."
             main_menu
             ;;
-        4) cloud_vm_menu ;;
-        5) local_box_menu ;;
-        6) bash scripts/healthcheck.sh ; read -p "Press Enter to continue..." ; main_menu ;;
+        5) cloud_vm_menu ;;
+        6) local_box_menu ;;
+        7) bash scripts/healthcheck.sh ; read -p "Press Enter to continue..." ; main_menu ;;
         p) 
             echo -e "\n${B}Available OCI Profiles in ~/.oci/config:${N}"
             if [ -f "$HOME/.oci/config" ]; then
