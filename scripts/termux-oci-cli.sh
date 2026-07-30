@@ -372,7 +372,7 @@ fi
 # a phone, often dying out of memory. Termux ships a prebuilt one.
 
 if python -c 'import cryptography' >/dev/null 2>&1; then
-    info "cryptography already present [$(python -c 'import cryptography; print(cryptography.__version__)']]"
+    info "cryptography already present [$(python -c 'import cryptography; print(cryptography.__version__)')]"
 else
     step "installing python-cryptography from the Termux repository"
     pkg install -y python-cryptography \
