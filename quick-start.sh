@@ -3,9 +3,14 @@
 
 G='\033[32m'; Y='\033[33m'; R='\033[31m'; C='\033[36m'; B='\033[1m'; N='\033[0m'
 
+# Global OCI Profile
+OCI_PROFILE="DEFAULT"
+
 main_menu() {
     clear
     echo -e "${B}TermuxRD-Cloud & rootd-fs Manager${N}"
+    echo -e "------------------------------------"
+    echo -e "Active OCI Profile: ${Y}${OCI_PROFILE}${N}"
     echo -e "------------------------------------"
     echo -e "1) ${C}Setup Termux${N} (Initial Android setup)"
     echo -e "2) ${C}Install OCI CLI${N} (Oracle Cloud management)"
@@ -13,41 +18,72 @@ main_menu() {
     echo -e "4) ${C}Cloud VM Connection${N} (Manage Cloud SSH/IPs)"
     echo -e "5) ${C}Local Box Tooling${N} (Tailscale & SSH via rootd-fs)"
     echo -e "6) ${C}Healthcheck${N} (Diagnose setup)"
+    echo -e "p) ${Y}Switch OCI Profile${N}"
     echo -e "q) Exit"
     echo
 
-    read -p "Select [1-6]: " pilihan
+    read -p "Select [1-6/p/q]: " pilihan
 
     case $pilihan in
         1) bash scripts/termux-setup.sh ;;
         2) bash scripts/termux-oci-cli.sh ;;
         3) 
-            read -p "OCI Profile (default): " prof
-            [ -z "$prof" ] && bash scripts/oci-grab-arm.sh || bash scripts/oci-grab-arm.sh --profile "$prof"
+            bash scripts/oci-grab-arm.sh --profile "$OCI_PROFILE"
+            read -p "Press Enter to continue..."
+            main_menu
             ;;
-        4) 
-            echo -e "\n${B}Cloud VM Connection Menu${N}"
-            echo -e "1) List OCI Instances"
-            echo -e "2) Setup SSH Key for Cloud"
-            echo -e "3) Connect to VM (SSH)"
-            echo -e "b) Back"
-            read -p "Option: " c_opt
-            case $c_opt in
-                1) bash scripts/oci-vm-connect.sh --list ;;
-                2) bash scripts/oci-vm-connect.sh --setup-key ;;
-                3) 
-                    read -p "Target IP: " target
-                    read -p "User (default: ubuntu): " user
-                    user=${user:-ubuntu}
-                    bash scripts/oci-vm-connect.sh --connect "$target" --user "$user"
-                    ;;
-                *) main_menu ;;
-            esac
-            ;;
+        4) cloud_vm_menu ;;
         5) local_box_menu ;;
-        6) bash scripts/healthcheck.sh ;;
+        6) bash scripts/healthcheck.sh ; read -p "Press Enter to continue..." ; main_menu ;;
+        p) 
+            echo -e "\n${B}Available OCI Profiles in ~/.oci/config:${N}"
+            if [ -f "$HOME/.oci/config" ]; then
+                grep "\[" "$HOME/.oci/config" | tr -d '[]'
+            else
+                echo -e "${R}No ~/.oci/config found.${N}"
+            fi
+            echo
+            read -p "Enter profile name to use: " new_prof
+            if [ -n "$new_prof" ]; then
+                OCI_PROFILE="$new_prof"
+            fi
+            main_menu
+            ;;
         q) exit 0 ;;
         *) echo "Invalid choice"; sleep 1; main_menu ;;
+    esac
+}
+
+cloud_vm_menu() {
+    clear
+    echo -e "${B}Cloud VM Connection Menu${N} (Profile: ${Y}${OCI_PROFILE}${N})"
+    echo -e "------------------------------------"
+    echo -e "1) List OCI Instances"
+    echo -e "2) Setup SSH Key for Cloud"
+    echo -e "3) Connect to VM (SSH)"
+    echo -e "b) Back"
+    echo
+    read -p "Option: " c_opt
+    case $c_opt in
+        1) 
+            bash scripts/oci-vm-connect.sh --list --profile "$OCI_PROFILE"
+            read -p "Press Enter to continue..."
+            cloud_vm_menu
+            ;;
+        2) 
+            bash scripts/oci-vm-connect.sh --setup-key
+            read -p "Press Enter to continue..."
+            cloud_vm_menu
+            ;;
+        3) 
+            read -p "Target IP: " target
+            read -p "User (default: ubuntu): " user
+            user=${user:-ubuntu}
+            bash scripts/oci-vm-connect.sh --connect "$target" --user "$user"
+            read -p "Press Enter to continue..."
+            cloud_vm_menu
+            ;;
+        *) main_menu ;;
     esac
 }
 
@@ -93,6 +129,7 @@ local_box_menu() {
                    box=${box:-tailscale}
                    rootd tailscale "$box" down ;;
             esac
+            read -p "Press Enter to continue..."
             local_box_menu
             ;;
         2)
@@ -109,6 +146,7 @@ local_box_menu() {
                    read -p "Target (user@host): " target
                    rootd ssh "$box" -- "$target" ;;
             esac
+            read -p "Press Enter to continue..."
             local_box_menu
             ;;
         3)
@@ -127,11 +165,13 @@ local_box_menu() {
                    read -p "Host (e.g. ssh://user@100.x.y.z): " host
                    rootd docker "$box" --host "$host" ;;
             esac
+            read -p "Press Enter to continue..."
             local_box_menu
             ;;
         4)
             read -p "Box name (tailscale/docker/alpine): " preset
             rootd install "$preset"
+            read -p "Press Enter to continue..."
             local_box_menu
             ;;
         b) main_menu ;;
