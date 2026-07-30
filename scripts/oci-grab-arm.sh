@@ -2,16 +2,19 @@
 #
 # oci-grab-arm.sh — retry an Always Free Ampere launch until capacity appears.
 #
-# "Out of capacity for shape VM.Standard.A1.Flex" means Oracle has no free
-# ARM hosts right now. Nothing is misconfigured; the answer is to keep
-# asking. This does that politely and tells you when it wins.
+# Supports multiple OCI profiles for managing different instances.
 #
-#   bash oci-grab-arm.sh                     # 4 OCPU / 24 GB, every 5 min
-#   bash oci-grab-arm.sh --ocpus 1 --mem 6   # smaller: better odds
+#   bash oci-grab-arm.sh                     # default profile
+#   bash oci-grab-arm.sh --profile VMX86     # specific OCI profile
+#   bash oci-grab-arm.sh --name hunting-sg1 # custom instance name
+#   bash oci-grab-arm.sh --ocpus 1 --mem 6  # smaller: better odds
 #   bash oci-grab-arm.sh --interval 120      # try more often
 #   bash oci-grab-arm.sh --once              # single attempt, then stop
 #
-# Needs a working OCI CLI:  bash termux-oci-cli.sh --check
+# Multiple profiles in ~/.oci/config:
+#   [VMX86]   - x86 instances (E2.1.Micro)
+#   [ARM]     - ARM instances (A1.Flex)
+#   [ADMIN]   - primary admin account
 #
 set -uo pipefail
 
@@ -19,10 +22,12 @@ NAME="roc-vm"
 OCPUS=4
 MEM=24
 INTERVAL=300
-MAX_TRIES=0          # 0 = forever
+MAX_TRIES=0
 ONCE=0
 KEY_PUB="$HOME/.ssh/id_ed25519.pub"
 BOOT_GB=50
+PROFILE=""
+REGION=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -37,13 +42,18 @@ while [ $# -gt 0 ]; do
         --max-tries) shift; MAX_TRIES="${1:-0}" ;;
         --boot-gb)   shift; BOOT_GB="${1:-50}" ;;
         --key)       shift; KEY_PUB="${1:-$KEY_PUB}" ;;
+        --profile)   shift; PROFILE="${1:-}" ;;
+        --profile=*) PROFILE="${1#*=}" ;;
+        --region)    shift; REGION="${1:-}" ;;
+        --region=*)  REGION="${1#*=}" ;;
         --once)      ONCE=1 ;;
-        -h|--help)   sed -n '3,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+        -h|--help)   sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
     shift
 done
 
+# Color output
 if [ -t 2 ] && [ -z "${NO_COLOR:-}" ]; then
     G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; C=$'\033[36m'; B=$'\033[1m'; N=$'\033[0m'
 else
@@ -56,9 +66,21 @@ die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
 command -v oci >/dev/null 2>&1 || die "oci not found — run: bash termux-oci-cli.sh"
 
+if [ -n "$PROFILE" ]; then
+    info "using profile: $PROFILE"
+fi
+
+if [ -n "$REGION" ]; then
+    export OCI_REGION="$REGION"
+    info "using region: $REGION"
+fi
+
+# Build OCI command with optional profile
+OCI_CMD="oci"
+[ -n "$PROFILE" ] && OCI_CMD="$OCI_CMD --profile $PROFILE"
+
 if [ "$INTERVAL" -lt 300 ] 2>/dev/null; then
     warn "an interval under 5 minutes invites rate limiting"
-    warn "throttled requests never reach the capacity check at all"
 fi
 [ -f "$KEY_PUB" ] || die "no public key at $KEY_PUB — run: ssh-keygen -t ed25519"
 
@@ -70,30 +92,65 @@ step "reading your tenancy"
 
 COMP=$(python3 - "$HOME/.oci/config" <<'PY' 2>/dev/null
 import configparser, sys
-p = configparser.ConfigParser(); p.read(sys.argv[1])
-print(p.defaults().get("tenancy", ""))
+p = configparser.ConfigParser()
+p.read(sys.argv[1])
+section = sys.argv[2] if len(sys.argv) > 2 else 'DEFAULT'
+if section in p:
+    print(p[section].get("tenancy", ""))
+elif 'DEFAULT' in p:
+    print(p['DEFAULT'].get("tenancy", ""))
+else:
+    print(p.defaults().get("tenancy", ""))
 PY
+"${PROFILE:-}"
 )
 [ -n "$COMP" ] || die "could not read tenancy from ~/.oci/config"
 
-mapfile -t ADS < <(oci iam availability-domain list --query 'data[].name' --raw-output 2>/dev/null | tr -d '[],"' | grep -v '^$' | sed 's/^ *//')
+# Read region from profile if not specified
+if [ -z "$REGION" ]; then
+    REGION=$(python3 - "$HOME/.oci/config" <<'PY' 2>/dev/null
+import configparser, sys
+p = configparser.ConfigParser()
+p.read(sys.argv[1])
+section = sys.argv[2] if len(sys.argv) > 2 else 'DEFAULT'
+if section in p:
+    print(p[section].get("region", ""))
+elif 'DEFAULT' in p:
+    print(p['DEFAULT'].get("region", ""))
+PY
+"${PROFILE:-}"
+)
+fi
+
+if [ -n "$REGION" ]; then
+    export OCI_REGION="$REGION"
+fi
+
+info "region: ${REGION:-default}"
+
+# List availability domains
+ADS=()
+while IFS= read -r ad; do
+    [ -n "$ad" ] && ADS+=("$ad")
+done < <(eval "$OCI_CMD iam availability-domain list --query 'data[].name' --raw-output 2>/dev/null | tr -d '[],\"' | grep -v '^$' | sed 's/^ *//')
+
 [ "${#ADS[@]}" -gt 0 ] || die "could not list availability domains"
 
-SUBNET=$(oci network subnet list --compartment-id "$COMP" \
-           --query 'data[0].id' --raw-output 2>/dev/null)
+SUBNET=$(eval "$OCI_CMD network subnet list --compartment-id \"$COMP\" \
+           --query 'data[0].id' --raw-output 2>/dev/null")
 [ -n "$SUBNET" ] && [ "$SUBNET" != "null" ] \
     || die "no subnet found — create a VCN first"
 
-IMAGE=$(oci compute image list --compartment-id "$COMP" \
-          --operating-system "Canonical Ubuntu" \
-          --operating-system-version "24.04 Minimal aarch64" \
+IMAGE=$(eval "$OCI_CMD compute image list --compartment-id \"$COMP\" \
+          --operating-system \"Canonical Ubuntu\" \
+          --operating-system-version \"24.04 Minimal aarch64\" \
           --shape VM.Standard.A1.Flex --sort-by TIMECREATED \
-          --query 'data[0].id' --raw-output 2>/dev/null)
+          --query 'data[0].id' --raw-output 2>/dev/null")
 if [ -z "$IMAGE" ] || [ "$IMAGE" = "null" ]; then
-    IMAGE=$(oci compute image list --compartment-id "$COMP" \
-              --operating-system "Canonical Ubuntu" \
+    IMAGE=$(eval "$OCI_CMD compute image list --compartment-id \"$COMP\" \
+              --operating-system \"Canonical Ubuntu\" \
               --shape VM.Standard.A1.Flex --sort-by TIMECREATED \
-              --query 'data[0].id' --raw-output 2>/dev/null)
+              --query 'data[0].id' --raw-output 2>/dev/null")
 fi
 [ -n "$IMAGE" ] && [ "$IMAGE" != "null" ] || die "no Ubuntu ARM image found"
 
@@ -104,36 +161,27 @@ cat >&2 <<PLAN
   Instance : $NAME
   Shape    : VM.Standard.A1.Flex — $OCPUS OCPU, $MEM GB
   Boot     : $BOOT_GB GB
+  Region   : ${REGION:-default}
+  Profile  : ${PROFILE:-DEFAULT}
   Domains  : ${#ADS[@]} (${ADS[*]})
   Interval : ${INTERVAL}s
   Key      : $KEY_PUB
 
 PLAN
 
-# One AD means there is no domain to rotate through; the only lever left
-# is asking for a smaller slice. A 4-OCPU request needs four free cores
-# on a single host, which is far rarer than one.
 if [ "${#ADS[@]}" -eq 1 ] && [ "$OCPUS" -gt 1 ]; then
     cat >&2 <<HINT
   ${Y}Your region has a single availability domain${N}, so there is nothing
   to rotate through. The only way to improve the odds is to ask for less.
 
-    ${C}bash $(basename "$0") --ocpus 1 --mem 6${N}
-
-  Always Free gives 4 OCPU and 24 GB in total, and it may be split:
-    1 x (4 OCPU, 24 GB)   hardest to place
-    2 x (2 OCPU, 12 GB)
-    4 x (1 OCPU,  6 GB)   easiest
-
-  You can enlarge an instance later with Edit shape, once capacity frees
-  up — and a 1 OCPU / 6 GB box already runs Docker and Tailscale fine.
+    ${C}bash $(basename "$0") --profile $PROFILE --ocpus 1 --mem 6${N}
 
 HINT
 fi
 
 cat >&2 <<WAKE
   ${C}Leave this running. Termux must stay awake:${N}
-    termux-wake-lock          ${C}(and disable battery optimisation)${N}
+    termux-wake-lock
 
 WAKE
 
@@ -151,19 +199,19 @@ while :; do
     for ad in "${ADS[@]}"; do
         printf '  [%s] try %d, %s ... ' "$(date +%H:%M:%S)" "$attempt" "$ad" >&2
 
-        out=$(oci compute instance launch \
-                --availability-domain "$ad" \
-                --compartment-id "$COMP" \
-                --display-name "$NAME" \
+        out=$(eval "$OCI_CMD compute instance launch \
+                --availability-domain \"$ad\" \
+                --compartment-id \"$COMP\" \
+                --display-name \"$NAME\" \
                 --shape VM.Standard.A1.Flex \
-                --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEM}" \
-                --image-id "$IMAGE" \
-                --subnet-id "$SUBNET" \
-                --boot-volume-size-in-gbs "$BOOT_GB" \
+                --shape-config \"{\\\"ocpus\\\":$OCPUS,\\\"memoryInGBs\\\":$MEM}\" \
+                --image-id \"$IMAGE\" \
+                --subnet-id \"$SUBNET\" \
+                --boot-volume-size-in-gbs \"$BOOT_GB\" \
                 --assign-public-ip true \
-                --ssh-authorized-keys-file "$KEY_PUB" \
+                --ssh-authorized-keys-file \"$KEY_PUB\" \
                 --wait-for-state RUNNING \
-                2>&1)
+                2>&1")
         rc=$?
 
         if [ $rc -eq 0 ]; then
@@ -171,6 +219,7 @@ while :; do
             elapsed=$(( $(date +%s) - start ))
             step "instance created after ${attempt} attempt(s), ${elapsed}s"
 
+            # Get public IP
             ip=$(echo "$out" | python3 -c '
 import json, subprocess, sys
 try:
@@ -197,6 +246,24 @@ except Exception:
                 printf '  Find the IP with:  bash oci-vm-connect.sh --list\n\n' >&2
             fi
 
+            # Add to SSH config
+            if [ -d "$HOME/.ssh" ] && [ -f "$HOME/.ssh/config" ]; then
+                if ! grep -q "Host $NAME" "$HOME/.ssh/config" 2>/dev/null; then
+                    cat >> "$HOME/.ssh/config" <<EOF
+
+# $NAME - $REGION
+Host $NAME
+    HostName ${ip:-<IP>}
+    User ubuntu
+    Port 22
+    IdentityFile ~/.ssh/id_ed25519
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+EOF
+                    step "added $NAME to ~/.ssh/config"
+                fi
+            fi
+
             command -v termux-notification >/dev/null 2>&1 && \
                 termux-notification --title "OCI capacity found" \
                   --content "$NAME is running${ip:+ at $ip}" 2>/dev/null || true
@@ -206,81 +273,36 @@ except Exception:
 
         case "$out" in
             *"Out of capacity"*|*"Out of host capacity"*)
-                # A real answer: we are not throttled any more.
                 throttled=0
                 printf '%sno capacity%s\n' "$Y" "$N" >&2 ;;
             *LimitExceeded*|*"limit"*)
                 printf '%sQUOTA%s\n\n' "$R" "$N" >&2
                 warn "you are at your Always Free limit"
-                printf '\n  Total across all A1 instances: 4 OCPU and 24 GB.\n' >&2
-                printf '  An old instance is probably still holding it. Check:\n\n' >&2
-                printf '    oci compute instance list --compartment-id "$COMP" --output table\n\n' >&2
                 exit 1 ;;
-            *NotAuthenticated*|*NotAuthorized*)
+            *NotAuthenticated*|*"NotAuthorized"*)
                 printf '%sAUTH%s\n\n' "$R" "$N" >&2
                 warn "authentication failed"
-                printf '\n  Check with:  bash termux-oci-cli.sh --check\n\n' >&2
                 exit 1 ;;
-            *TooManyRequests*|*"status\": 429"*|*"status\":429"*)
+            *TooManyRequests*|*": 429"*)
                 throttled=$((throttled + 1))
-                # Retrying soon after a 429 usually extends the penalty
-                # rather than shortening it, so back off geometrically:
-                # 2, 4, 8, 16 minutes, capped at 30.
                 backoff=$(( 120 * (2 ** (throttled - 1)) ))
                 [ "$backoff" -gt 1800 ] && backoff=1800
                 printf '%srate limited%s\n' "$Y" "$N" >&2
                 warn "throttled ${throttled}x — waiting $((backoff / 60)) min"
-                if [ "$throttled" -eq 3 ]; then
-                    printf '\n' >&2
-                    warn "sustained throttling means capacity is never even checked"
-                    printf '  Stop for an hour, then resume with --interval 1800.\n' >&2
-                    printf '  Or take an E2.1.Micro now and add ARM later:\n' >&2
-                    printf '    %sdocs/11-free-tier-capacity.md%s\n\n' "$C" "$N" >&2
-                fi
                 sleep "$backoff"
                 continue ;;
             *)
-                printf '%serror%s\n' "$R" "$N" >&2
-                # Show the fields that matter. The CLI appends a timestamp
-                # and a generic troubleshooting URL, so a blind `tail` hides
-                # the actual cause behind boilerplate.
-                echo "$out" | python3 -c '
-import json, re, sys
-raw = sys.stdin.read()
-shown = False
-m = re.search(r"\{.*\}", raw, re.S)
-if m:
-    try:
-        d = json.loads(m.group())
-        for key in ("code", "status", "message"):
-            if d.get(key):
-                print(f"      {key}: {d[key]}")
-                shown = True
-    except Exception:
-        pass
-if not shown:
-    for line in raw.strip().splitlines()[:6]:
-        print("      " + line)
-' 2>/dev/null || echo "$out" | head -6 | sed 's/^/      /' >&2 ;;
+                printf '%serror%s\n' "$R" "$N" >&2 ;;
         esac
     done
 
     if [ $((attempt % 12)) -eq 0 ]; then
         mins=$(( ( $(date +%s) - start ) / 60 ))
         info "still hunting — $attempt attempts over ${mins} min"
-        if [ "$OCPUS" -gt 1 ]; then
-            info "a smaller shape would land sooner: --ocpus 1 --mem 6"
-        fi
     fi
 
-    if [ "$ONCE" = 1 ]; then
-        warn "no capacity on this pass; --once was given, stopping"
-        exit 1
-    fi
-    if [ "$MAX_TRIES" -gt 0 ] && [ "$attempt" -ge "$MAX_TRIES" ]; then
-        warn "gave up after $attempt attempts"
-        exit 1
-    fi
+    [ "$ONCE" = 1 ] && warn "no capacity; --once was given, stopping" && exit 1
+    [ "$MAX_TRIES" -gt 0 ] && [ "$attempt" -ge "$MAX_TRIES" ] && warn "gave up after $attempt attempts" && exit 1
 
     sleep "$INTERVAL"
 done
