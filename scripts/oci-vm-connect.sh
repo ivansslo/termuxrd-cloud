@@ -1,60 +1,45 @@
 #!/usr/bin/env bash
 #
-# oci-vm-connect.sh - find your OCI instances and set up SSH from Termux.
+# oci-vm-connect.sh - find OCI instances and connect via SSH.
 #
-# Supports multiple OCI profiles for managing different instances.
+# Usage:
+#   bash oci-vm-connect.sh --list            # list running instances
+#   bash oci-vm-connect.sh --setup-key       # generate a key for OCI
+#   bash oci-vm-connect.sh --connect <IP>    # SSH to a public IP
 #
-#   bash oci-vm-connect.sh --list                    # list all running instances
-#   bash oci-vm-connect.sh --list --profile VMX86   # list instances for profile
-#   bash oci-vm-connect.sh --setup-key               # create/show an SSH key
-#   bash oci-vm-connect.sh --connect <ip>            # ssh in
-#   bash oci-vm-connect.sh --connect roc-vm-x86      # ssh using SSH config alias
-#   bash oci-vm-connect.sh --trust-host <ip>         # let rootd box trust the VM
-#   bash oci-vm-connect.sh --instances               # list instances with details
-#
-set -euo pipefail
+set -uo pipefail
 
 ACTION=""
 TARGET=""
-SSH_USER="ubuntu"
-BOX="docker"
-KEY_TYPE="ed25519"
-KEY_PATH="$HOME/.ssh/id_ed25519"
-COMPARTMENT=""
 PROFILE=""
+COMPARTMENT=""
+SSH_USER="ubuntu"
+KEY_PATH="$HOME/.ssh/id_ed25519"
+KEY_TYPE="ed25519"
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --list)        ACTION="list" ;;
         --instances)   ACTION="instances" ;;
         --setup-key)   ACTION="setupkey" ;;
-        --connect)
+        --connect)     
+            shift
             ACTION="connect"
-            if [ $# -lt 2 ] || case "${2:-}" in -*) true ;; *) false ;; esac; then
-                echo "error: --connect needs an address, e.g. --connect 1.2.3.4" >&2
-                exit 2
-            fi
-            shift; TARGET="$1" ;;
+            TARGET="${1:-}" ;;
         --connect=*)   ACTION="connect"; TARGET="${1#*=}" ;;
         --trust-host)
+            shift
             ACTION="trusthost"
-            if [ $# -lt 2 ] || case "${2:-}" in -*) true ;; *) false ;; esac; then
-                echo "error: --trust-host needs an address" >&2; exit 2
-            fi
-            shift; TARGET="$1" ;;
+            TARGET="${1:-}" ;;
         --trust-host=*) ACTION="trusthost"; TARGET="${1#*=}" ;;
-        --box)         shift; BOX="${1:-docker}" ;;
-        --box=*)       BOX="${1#*=}" ;;
-        --key-type)    shift; KEY_TYPE="${1:-ed25519}" ;;
-        --key-type=*)  KEY_TYPE="${1#*=}" ;;
+        --profile)     shift; PROFILE="${1:-}" ;;
+        --profile=*)   PROFILE="${1#*=}" ;;
+        --compartment) shift; COMPARTMENT="${1:-}" ;;
+        --compartment=*) COMPARTMENT="${1#*=}" ;;
         --user)        shift; SSH_USER="${1:-ubuntu}" ;;
         --user=*)      SSH_USER="${1#*=}" ;;
         --key)         shift; KEY_PATH="${1:-$KEY_PATH}" ;;
         --key=*)       KEY_PATH="${1#*=}" ;;
-        --compartment) shift; COMPARTMENT="${1:-}" ;;
-        --compartment=*) COMPARTMENT="${1#*=}" ;;
-        --profile)     shift; PROFILE="${1:-}" ;;
-        --profile=*)   PROFILE="${1#*=}" ;;
         -h|--help)     sed -n '3,16p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
         *) echo "unknown option: $1" >&2; exit 2 ;;
     esac
@@ -65,7 +50,7 @@ done
 if [ -t 2 ] && [ -z "${NO_COLOR:-}" ]; then
     G=$'\033[32m'; Y=$'\033[33m'; R=$'\033[31m'; C=$'\033[36m'; D=$'\033[2m'; B=$'\033[1m'; N=$'\033[0m'
 else
-    G=""; Y=""; R=""; C=""; D=""; B=""; N=""
+    G=""; Y=""; R=""; C=""; B=""; N=""
 fi
 step() { printf '%s=>%s %s\n' "$G" "$N" "$*" >&2; }
 info() { printf '%s::%s %s\n' "$C" "$N" "$*" >&2; }
@@ -76,35 +61,31 @@ die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
 # Build OCI command with optional profile
 OCI_CMD="oci"
-[ -n "$PROFILE" ] && OCI_CMD="$OCI_CMD --profile $PROFILE"
+[ -n "$PROFILE" ] && OCI_CMD="oci --profile $PROFILE"
 
 if [ -n "$PROFILE" ]; then
     info "using profile: $PROFILE"
 fi
 
 # ---------------------------------------------------------------------
-# discovery
+# helpers
 # ---------------------------------------------------------------------
 
 need_oci() {
-    command -v oci >/dev/null 2>&1 \
-        || die "oci not found - run: bash termux-oci-cli.sh"
+    command -v oci >/dev/null 2>&1 || die "oci not found - run: bash termux-oci-cli.sh"
 }
 
 tenancy_ocid() {
-    python3 - "$HOME/.oci/config" <<'PY' 2>/dev/null || true
+    python3 - "$HOME/.oci/config" "${PROFILE:-DEFAULT}" <<'PY' 2>/dev/null
 import configparser, sys
 p = configparser.ConfigParser()
 p.read(sys.argv[1])
-section = sys.argv[2] if len(sys.argv) > 2 else 'DEFAULT'
+section = sys.argv[2]
 if section in p:
     print(p[section].get("tenancy", ""))
 elif 'DEFAULT' in p:
     print(p['DEFAULT'].get("tenancy", ""))
-else:
-    print(p.defaults().get("tenancy", ""))
 PY
-"${PROFILE:-}"
 }
 
 list_profiles() {
@@ -114,11 +95,8 @@ list_profiles() {
 import configparser, sys
 p = configparser.ConfigParser()
 p.read(sys.argv[1])
-for section in p.sections():
-    region = p[section].get("region", "N/A")
-    tenancy = p[section].get("tenancy", "N/A")
-    short_tenancy = tenancy[:20] + "..." if len(tenancy) > 20 else tenancy
-    print("  [%s] region=%s, tenancy=%s" % (section, region, short_tenancy))
+for s in p.sections():
+    print("  - %s" % s)
 PY
     echo ""
     info "usage: --profile PROFILENAME"
@@ -130,11 +108,10 @@ list_instances() {
     [ -n "$comp" ] || die "no compartment; pass --compartment ocid1.compartment..."
 
     step "querying instances - profile: ${PROFILE:-DEFAULT}"
-    info "compartment: ${comp:0:40}…"
+    info "compartment: ${comp:0:40}..."
 
     local json
-    json=$(eval "$OCI_CMD compute instance list --compartment-id \"$comp\" \
-             --lifecycle-state RUNNING --all 2>/dev/null") || {
+    json=$($OCI_CMD compute instance list --compartment-id "$comp" --lifecycle-state RUNNING --all 2>/dev/null) || {
         warn "no instances in that compartment, or access denied"
         printf '\n  List your compartments with:\n'
         printf '    oci iam compartment list --output table\n\n'
@@ -154,37 +131,34 @@ except Exception as exc:
 
 items = data.get("data", [])
 if not items:
-    print("    none running")
+    print("    no running instances found")
     sys.exit(0)
 
-print("  NAME                    SHAPE                    PUBLIC IP        STATUS")
-print("  " + "-"*75)
-
-for inst in items:
-    name = inst.get("display-name", "?")
-    shape = inst.get("shape", "?")
-    state = inst.get("lifecycle-state", "?")
-    ocid = inst.get("id", "")
+for i in items:
+    name = i.get("display-name", "unknown")
+    ocid = i.get("id", "")
+    shape = i.get("shape", "")
+    region = i.get("region", "unknown")
     
-    pub_ip = ""
+    # query IP
+    ip = "?"
     try:
-        out = subprocess.run(
-            ["oci", "compute", "instance", "list-vnics", "--instance-id", ocid],
-            capture_output=True, text=True, timeout=90,
-        )
-        vnics = json.loads(out.stdout).get("data", []) if out.stdout.strip() else []
-        for v in vnics:
-            if v.get("public-ip"):
-                pub_ip = v["public-ip"]
-    except Exception:
-        pass
-    
-    pub_ip_display = pub_ip if pub_ip else "N/A"
-    print("  %-23s %-25s %-15s %s" % (name, shape, pub_ip_display, state))
+        r = subprocess.run(["oci", "compute", "instance", "list-vnics", 
+                            "--instance-id", ocid],
+                           capture_output=True, text=True, timeout=10)
+        v = json.loads(r.stdout)["data"]
+        ip = v[0].get("public-ip", "-")
+        priv = v[0].get("private-ip", "-")
+    except:
+        ip = "err"
+        priv = "-"
+
+    print("  %s%-15s%s  %s  %s (priv: %s)" % ("\033[1m", name, "\033[0m", shape, ip, priv))
+    print("    %s" % ocid)
+    print("")
 '
 }
 
-# Detailed instance list
 show_instances() {
     need_oci
     local comp="${COMPARTMENT:-$(tenancy_ocid)}"
@@ -193,8 +167,7 @@ show_instances() {
     step "detailed instance listing - profile: ${PROFILE:-DEFAULT}"
 
     local json
-    json=$(eval "$OCI_CMD compute instance list --compartment-id \"$comp\" \
-             --lifecycle-state RUNNING --all 2>/dev/null") || {
+    json=$($OCI_CMD compute instance list --compartment-id "$comp" --lifecycle-state RUNNING --all 2>/dev/null) || {
         warn "no instances found"
         return 1
     }
@@ -204,43 +177,28 @@ import json, subprocess, sys
 
 try:
     data = json.load(sys.stdin)
-except Exception:
+except:
     sys.exit(0)
 
-items = data.get("data", [])
-if not items:
-    print("  none running")
-    sys.exit(0)
-
-for inst in items:
-    print("")
-    print("  === %s ===" % inst.get("display-name", "?"))
-    print("    Shape     : %s" % inst.get("shape", "?"))
-    print("    Status    : %s" % inst.get("lifecycle-state", "?"))
-    print("    Region    : %s" % inst.get("region", "?"))
-    print("    OCID      : %s..." % inst.get("id", "")[:50])
+for i in data.get("data", []):
+    print("-" * 60)
+    print("Name      : %s" % i.get("display-name"))
+    print("Shape     : %s" % i.get("shape"))
+    print("AD        : %s" % i.get("availability-domain"))
+    print("OCID      : %s" % i.get("id"))
     
-    ocid = inst.get("id", "")
     try:
-        out = subprocess.run(
-            ["oci", "compute", "instance", "list-vnics", "--instance-id", ocid],
-            capture_output=True, text=True, timeout=90,
-        )
-        vnics = json.loads(out.stdout).get("data", []) if out.stdout.strip() else []
-        for v in vnics:
-            if v.get("public-ip"):
-                print("    Public IP : %s" % v["public-ip"])
-            if v.get("private-ip"):
-                print("    Private IP: %s" % v["private-ip"])
-    except Exception:
+        r = subprocess.run(["oci", "compute", "instance", "list-vnics", 
+                            "--instance-id", i.get("id")],
+                           capture_output=True, text=True, timeout=10)
+        v = json.loads(r.stdout)["data"][0]
+        print("Public IP : %s" % v.get("public-ip", "none"))
+        print("Private IP: %s" % v.get("private-ip", "none"))
+    except:
         pass
 '
-    echo ""
+    echo "-" * 60
 }
-
-# ---------------------------------------------------------------------
-# ssh key
-# ---------------------------------------------------------------------
 
 setup_key() {
     mkdir -p "$HOME/.ssh"
@@ -255,20 +213,19 @@ setup_key() {
     chmod 600 "$KEY_PATH"
 
     printf '\n  %sYour public key:%s\n\n' "$B" "$N"
-    printf '    %s\n\n' "$(cat "$KEY_PATH.pub")"
+    cat "$KEY_PATH.pub" | sed 's/^/    /'
 
-    printf '  %sAuthorise this key ON THE VM%s\n\n' "$B" "$N"
-    printf '  Once you are on the VM, run:\n\n'
-    printf '    mkdir -p ~/.ssh && chmod 700 ~/.ssh\n'
-    printf '    echo %s >> ~/.ssh/authorized_keys\n' "$(cat "$KEY_PATH.pub")"
-    printf '    chmod 600 ~/.ssh/authorized_keys\n\n'
-    printf '  %sThen, from Termux:%s\n\n' "$B" "$N"
-    printf '    bash %s --connect <public-ip> --user %s\n\n' "$(basename "$0")" "$SSH_USER"
+    cat <<HINT
+
+  ${B}Register this key on your OCI VM:${N}
+    1. Open Cloud Shell or log in using your existing key
+    2. Run:
+       mkdir -p ~/.ssh && chmod 700 ~/.ssh
+       echo '$(cat "$KEY_PATH.pub")' >> ~/.ssh/authorized_keys
+       chmod 600 ~/.ssh/authorized_keys
+
+HINT
 }
-
-# ---------------------------------------------------------------------
-# connect
-# ---------------------------------------------------------------------
 
 connect() {
     # Check if TARGET is an SSH config alias
@@ -280,7 +237,7 @@ connect() {
         fi
     fi
     
-    [ -n "$TARGET" ] || die "give an address: --connect 1.2.3.4 or --connect vm-alias"
+    [ -n "$TARGET" ] || die "usage: --connect <PUBLIC_IP>"
     [ -f "$KEY_PATH" ] || die "no key at $KEY_PATH - run --setup-key first"
     chmod 600 "$KEY_PATH" 2>/dev/null || true
 
@@ -292,38 +249,32 @@ connect() {
     case "$TARGET" in
         10.*|172.1[6-9].*|172.2[0-9].*|172.3[01].*|192.168.*)
             warn "$TARGET is a private address"
-            warn "use public IP, or connect over Tailscale"
+            info "this will only work if you are on the same Tailscale network"
             ;;
     esac
 
-    if ssh -i "$KEY_PATH" \
-        -o StrictHostKeyChecking=accept-new \
-        -o ServerAliveInterval=30 \
-        -o ServerAliveCountMax=4 \
-        "$SSH_USER@$TARGET"; then
-        exit 0
-    fi
-
+    # Connect
+    ssh -i "$KEY_PATH" -o StrictHostKeyChecking=accept-new "$SSH_USER@$TARGET"
     rc=$?
-    printf '\n' >&2
-    warn "connection failed  exit $rc"
-    exit "$rc"
+
+    if [ $rc -ne 0 ] && [ $rc -ne 130 ]; then
+        warn "connection failed - exit $rc"
+        echo "  Try specifying a different user: --user opc"
+        echo "  Or check if port 22 is open on the VM's public interface."
+    fi
 }
 
-# ---------------------------------------------------------------------
-# trust-host
-# ---------------------------------------------------------------------
-
 trust_host() {
-    local box="${BOX:-docker}"
-    [ -n "$TARGET" ] || die "give an address: --trust-host 100.x.y.z"
-
+    [ -n "$TARGET" ] || die "usage: --trust-host <IP>"
     command -v rootd >/dev/null 2>&1 || die "rootd not found"
-    rootd ls --plain 2>/dev/null | grep -qx "$box" \
-        || die "no container named '$box' [use --box NAME]"
+    
+    local box="docker"
+    rootd ls --plain | grep -qx "$box" \
+        || die "no container named '$box' - use --box NAME"
 
-    local keys=""
-
+    step "adding $TARGET to the '$box' container's known_hosts"
+    
+    local keys
     if [ -f "$HOME/.ssh/known_hosts" ]; then
         keys=$(ssh-keygen -F "$TARGET" -f "$HOME/.ssh/known_hosts" 2>/dev/null \
                | grep -v '^#' || true)
@@ -338,14 +289,10 @@ trust_host() {
 
         printf '\n  %sFingerprint offered by %s:%s\n\n' "$B" "$TARGET" "$N"
         printf '%s' "$keys" | ssh-keygen -lf - 2>/dev/null | sed 's/^/    /' >&2
-        printf '\n  %sThis was fetched over the network and is unverified.%s\n\n' "$Y" "$N"
     fi
 
-    rootd sh "$box" -- sh -c 'mkdir -p /root/.ssh && chmod 700 /root/.ssh' \
-        || die "could not prepare /root/.ssh inside '$box'"
-
     printf '%s\n' "$keys" | rootd sh "$box" -- \
-        sh -c 'cat >> /root/.ssh/known_hosts && chmod 600 /root/.ssh/known_hosts' \
+        sh -c 'mkdir -p /root/.ssh && cat >> /root/.ssh/known_hosts && chmod 600 /root/.ssh/known_hosts' \
         || die "could not write known_hosts inside '$box'"
 
     step "'$box' now trusts $TARGET"

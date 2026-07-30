@@ -1,20 +1,8 @@
 #!/usr/bin/env bash
 #
-# oci-grab-arm.sh  retry an Always Free Ampere launch until capacity appears.
+# oci-grab-arm.sh - retry an Always Free Ampere launch until capacity appears.
 #
 # Supports multiple OCI profiles for managing different instances.
-#
-#   bash oci-grab-arm.sh                     # default profile
-#   bash oci-grab-arm.sh --profile VMX86     # specific OCI profile
-#   bash oci-grab-arm.sh --name hunting-sg1 # custom instance name
-#   bash oci-grab-arm.sh --ocpus 1 --mem 6  # smaller: better odds
-#   bash oci-grab-arm.sh --interval 120      # try more often
-#   bash oci-grab-arm.sh --once              # single attempt, then stop
-#
-# Multiple profiles in ~/.oci/config:
-#   [VMX86]   - x86 instances (E2.1.Micro)
-#   [ARM]     - ARM instances (A1.Flex)
-#   [ADMIN]   - primary admin account
 #
 set -uo pipefail
 
@@ -64,25 +52,20 @@ info() { printf '%s::%s %s\n' "$C" "$N" "$*" >&2; }
 warn() { printf '%swarning:%s %s\n' "$Y" "$N" "$*" >&2; }
 die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
-command -v oci >/dev/null 2>&1 || die "oci not found  run: bash termux-oci-cli.sh"
+command -v oci >/dev/null 2>&1 || die "oci not found - run: bash termux-oci-cli.sh"
 
 if [ -n "$PROFILE" ]; then
     info "using profile: $PROFILE"
 fi
 
-if [ -n "$REGION" ]; then
-    export OCI_REGION="$REGION"
-    info "using region: $REGION"
-fi
-
 # Build OCI command with optional profile
 OCI_CMD="oci"
-[ -n "$PROFILE" ] && OCI_CMD="$OCI_CMD --profile $PROFILE"
+[ -n "$PROFILE" ] && OCI_CMD="oci --profile $PROFILE"
 
 if [ "$INTERVAL" -lt 300 ] 2>/dev/null; then
     warn "an interval under 5 minutes invites rate limiting"
 fi
-[ -f "$KEY_PUB" ] || die "no public key at $KEY_PUB  run: ssh-keygen -t ed25519"
+[ -f "$KEY_PUB" ] || die "no public key at $KEY_PUB - run: ssh-keygen -t ed25519"
 
 # ---------------------------------------------------------------------
 # gather what a launch needs
@@ -90,11 +73,11 @@ fi
 
 step "reading your tenancy"
 
-COMP=$(python3 - "$HOME/.oci/config" <<'PY' 2>/dev/null
+COMP=$(python3 - "$HOME/.oci/config" "${PROFILE:-DEFAULT}" <<'PY'
 import configparser, sys
 p = configparser.ConfigParser()
 p.read(sys.argv[1])
-section = sys.argv[2] if len(sys.argv) > 2 else 'DEFAULT'
+section = sys.argv[2]
 if section in p:
     print(p[section].get("tenancy", ""))
 elif 'DEFAULT' in p:
@@ -102,23 +85,21 @@ elif 'DEFAULT' in p:
 else:
     print(p.defaults().get("tenancy", ""))
 PY
-"${PROFILE:-}"
 )
 [ -n "$COMP" ] || die "could not read tenancy from ~/.oci/config"
 
 # Read region from profile if not specified
 if [ -z "$REGION" ]; then
-    REGION=$(python3 - "$HOME/.oci/config" <<'PY' 2>/dev/null
+    REGION=$(python3 - "$HOME/.oci/config" "${PROFILE:-DEFAULT}" <<'PY'
 import configparser, sys
 p = configparser.ConfigParser()
 p.read(sys.argv[1])
-section = sys.argv[2] if len(sys.argv) > 2 else 'DEFAULT'
+section = sys.argv[2]
 if section in p:
     print(p[section].get("region", ""))
 elif 'DEFAULT' in p:
     print(p['DEFAULT'].get("region", ""))
 PY
-"${PROFILE:-}"
 )
 fi
 
@@ -132,25 +113,24 @@ info "region: ${REGION:-default}"
 ADS=()
 while IFS= read -r ad; do
     [ -n "$ad" ] && ADS+=("$ad")
-done < <(eval "$OCI_CMD iam availability-domain list --query 'data[].name' --raw-output 2>/dev/null | tr -d '[],\"' | grep -v '^$' | sed 's/^ *//')
+done < <($OCI_CMD iam availability-domain list --query 'data[].name' --raw-output 2>/dev/null | tr -d '[],"' | grep -v '^$' | sed 's/^ *//')
 
 [ "${#ADS[@]}" -gt 0 ] || die "could not list availability domains"
 
-SUBNET=$(eval "$OCI_CMD network subnet list --compartment-id \"$COMP\" \
-           --query 'data[0].id' --raw-output 2>/dev/null")
-[ -n "$SUBNET" ] && [ "$SUBNET" != "null" ] \
-    || die "no subnet found  create a VCN first"
+SUBNET=$($OCI_CMD network subnet list --compartment-id "$COMP" --query 'data[0].id' --raw-output 2>/dev/null)
+[ -n "$SUBNET" ] && [ "$SUBNET" != "null" ] || die "no subnet found - create a VCN first"
 
-IMAGE=$(eval "$OCI_CMD compute image list --compartment-id \"$COMP\" \
-          --operating-system \"Canonical Ubuntu\" \
-          --operating-system-version \"24.04 Minimal aarch64\" \
+IMAGE=$($OCI_CMD compute image list --compartment-id "$COMP" \
+          --operating-system "Canonical Ubuntu" \
+          --operating-system-version "24.04 Minimal aarch64" \
           --shape VM.Standard.A1.Flex --sort-by TIMECREATED \
-          --query 'data[0].id' --raw-output 2>/dev/null")
+          --query 'data[0].id' --raw-output 2>/dev/null)
+
 if [ -z "$IMAGE" ] || [ "$IMAGE" = "null" ]; then
-    IMAGE=$(eval "$OCI_CMD compute image list --compartment-id \"$COMP\" \
-              --operating-system \"Canonical Ubuntu\" \
+    IMAGE=$($OCI_CMD compute image list --compartment-id "$COMP" \
+              --operating-system "Canonical Ubuntu" \
               --shape VM.Standard.A1.Flex --sort-by TIMECREATED \
-              --query 'data[0].id' --raw-output 2>/dev/null")
+              --query 'data[0].id' --raw-output 2>/dev/null)
 fi
 [ -n "$IMAGE" ] && [ "$IMAGE" != "null" ] || die "no Ubuntu ARM image found"
 
@@ -159,7 +139,7 @@ cat >&2 <<PLAN
   ${B}Hunting for Always Free Ampere capacity${N}
 
   Instance : $NAME
-  Shape    : VM.Standard.A1.Flex  $OCPUS OCPU, $MEM GB
+  Shape    : VM.Standard.A1.Flex - $OCPUS OCPU, $MEM GB
   Boot     : $BOOT_GB GB
   Region   : ${REGION:-default}
   Profile  : ${PROFILE:-DEFAULT}
@@ -174,7 +154,7 @@ if [ "${#ADS[@]}" -eq 1 ] && [ "$OCPUS" -gt 1 ]; then
   ${Y}Your region has a single availability domain${N}, so there is nothing
   to rotate through. The only way to improve the odds is to ask for less.
 
-    ${C}bash $(basename "$0") --profile $PROFILE --ocpus 1 --mem 6${N}
+    ${C}bash $(basename "$0") --profile "${PROFILE:-DEFAULT}" --ocpus 1 --mem 6${N}
 
 HINT
 fi
@@ -199,7 +179,20 @@ while :; do
     for ad in "${ADS[@]}"; do
         printf '  [%s] try %d, %s ... ' "$(date +%H:%M:%S)" "$attempt" "$ad" >&2
 
-        out=$(eval "$OCI_CMD compute instance launch --availability-domain "$ad" --compartment-id "$COMP" --display-name "$NAME" --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEM}" --image-id "$IMAGE" --subnet-id "$SUBNET" --boot-volume-size-in-gbs "$BOOT_GB" --assign-public-ip true --ssh-authorized-keys-file "$KEY_PUB" --wait-for-state RUNNING 2>&1")
+        # Executing without eval is safer if we handle variables correctly
+        out=$($OCI_CMD compute instance launch \
+                --availability-domain "$ad" \
+                --compartment-id "$COMP" \
+                --display-name "$NAME" \
+                --shape VM.Standard.A1.Flex \
+                --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEM}" \
+                --image-id "$IMAGE" \
+                --subnet-id "$SUBNET" \
+                --boot-volume-size-in-gbs "$BOOT_GB" \
+                --assign-public-ip true \
+                --ssh-authorized-keys-file "$KEY_PUB" \
+                --wait-for-state RUNNING \
+                2>&1)
         rc=$?
 
         if [ $rc -eq 0 ]; then
@@ -276,7 +269,7 @@ EOF
                 backoff=$(( 120 * (2 ** (throttled - 1)) ))
                 [ "$backoff" -gt 1800 ] && backoff=1800
                 printf '%srate limited%s\n' "$Y" "$N" >&2
-                warn "throttled ${throttled}x  waiting $((backoff / 60)) min"
+                warn "throttled ${throttled}x - waiting $((backoff / 60)) min"
                 sleep "$backoff"
                 continue ;;
             *)
@@ -286,7 +279,7 @@ EOF
 
     if [ $((attempt % 12)) -eq 0 ]; then
         mins=$(( ( $(date +%s) - start ) / 60 ))
-        info "still hunting  $attempt attempts over ${mins} min"
+        info "still hunting - $attempt attempts over ${mins} min"
     fi
 
     [ "$ONCE" = 1 ] && warn "no capacity; --once was given, stopping" && exit 1
