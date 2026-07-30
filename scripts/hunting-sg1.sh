@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# hunting-sg1.sh — Launch hunting-singapore-1 instance with VMX86 profile
+# hunting-sg1.sh - Launch hunting-singapore-1 instance with VMX86 profile
 #
 # Usage:
 #   bash scripts/hunting-sg1.sh

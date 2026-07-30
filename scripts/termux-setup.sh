@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# termux-setup.sh — prepare the phone side.
+# termux-setup.sh - prepare the phone side.
 #
 # Run this IN TERMUX.
 #
@@ -51,10 +51,10 @@ fi
 
 if [ -z "$VM_IP" ]; then
     if [ -t 0 ]; then
-        printf '  VM tailnet address (100.x.y.z): ' >&2
+        printf '  VM tailnet address [100.x.y.z]: ' >&2
         read -r VM_IP || VM_IP=""
     fi
-    [ -n "$VM_IP" ] || die "no address given — pass --host 100.x.y.z"
+    [ -n "$VM_IP" ] || die "no address given - pass --host 100.x.y.z"
 fi
 
 case "$VM_IP" in
@@ -87,7 +87,7 @@ if [ "$ASSUME_YES" != 1 ]; then
         read -r reply || reply=""
         case "$reply" in [Nn]*) echo "  aborted" >&2; exit 0 ;; esac
     else
-        die "not a terminal — pass --yes"
+        die "not a terminal - pass --yes"
     fi
 fi
 
@@ -107,7 +107,7 @@ fi
 # ---------------------------------------------------------------------
 
 if command -v rootd >/dev/null 2>&1; then
-    info "rootd already installed ($(rootd --version 2>&1 | head -1))"
+    info "rootd already installed [$[rootd --version 2>&1 | head -1]]"
 else
     step "installing termuxrd $TERMUXRD_REF"
     TMP="$(mktemp -d)"

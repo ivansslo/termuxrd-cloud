@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# server-bootstrap.sh — install Tailscale and Docker on a cloud VM.
+# server-bootstrap.sh - install Tailscale and Docker on a cloud VM.
 #
 # Run this ON THE VM, not on your phone.
 #
@@ -87,7 +87,7 @@ if [ "$ASSUME_YES" != 1 ]; then
         read -r reply || reply=""
         case "$reply" in [Nn]*) echo "  aborted" >&2; exit 0 ;; esac
     else
-        die "not a terminal — pass --yes"
+        die "not a terminal - pass --yes"
     fi
 fi
 
@@ -97,7 +97,7 @@ fi
 
 if [ "$SKIP_TAILSCALE" = 0 ]; then
     if command -v tailscale >/dev/null 2>&1; then
-        info "tailscale already installed ($(tailscale version | head -1))"
+        info "tailscale already installed [$[tailscale version | head -1]]"
     else
         step "installing tailscale"
         curl -fsSL https://tailscale.com/install.sh | sh
@@ -118,7 +118,7 @@ if [ "$SKIP_TAILSCALE" = 0 ]; then
         if [ -n "$AUTHKEY" ]; then
             sudo tailscale up --ssh --hostname="$HOSTNAME_TS" --authkey="$AUTHKEY"
         else
-            info "a login URL will be printed — open it in a browser"
+            info "a login URL will be printed - open it in a browser"
             sudo tailscale up --ssh --hostname="$HOSTNAME_TS"
         fi
     fi
@@ -136,7 +136,7 @@ fi
 
 if [ "$SKIP_DOCKER" = 0 ]; then
     if command -v docker >/dev/null 2>&1; then
-        info "docker already installed ($(docker --version))"
+        info "docker already installed [$[docker --version]]"
     else
         step "installing docker engine"
         case "$DISTRO" in

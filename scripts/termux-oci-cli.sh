@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# termux-oci-cli.sh — install the OCI CLI on Termux.
+# termux-oci-cli.sh - install the OCI CLI on Termux.
 #
 # Oracle's own install.sh cannot work here: it looks for dnf/yum/apt-get,
 # finds none of them, and exits. This script does the equivalent using
@@ -45,7 +45,7 @@ OCI_DIR="$HOME/.oci"
 # Read one key from the OCI config, the same way the SDK does.
 #
 # Two things this must survive:
-#   * a key that is absent — grep would return 1 and, under `set -e`,
+#   * a key that is absent - grep would return 1 and, under `set -e`,
 #     kill the script silently mid-report;
 #   * a value wrapped in quotes or trailed by a comment, which the SDK
 #     treats literally and which therefore must be reported as-is.
@@ -74,7 +74,7 @@ PYCFG
 #
 # Deliberately not parsing `openssl md5 -c` output: some builds print
 # "MD5(stdin)=aa:bb" with no space, which breaks field-splitting, and an
-# encrypted key yields the hash of *empty input* (d41d8cd9...) — a wrong
+# encrypted key yields the hash of *empty input* (d41d8cd9...) - a wrong
 # answer that looks like a right one. Python's cryptography module is
 # already present because oci-cli depends on it.
 key_fingerprint() {
@@ -195,7 +195,7 @@ PYREPAIR
     if config_is_sane; then
         step "config now parses"
     else
-        die "still unreadable — inspect $CFG by hand"
+        die "still unreadable - inspect $CFG by hand"
     fi
 
     kf=$(config_value key_file)
@@ -218,7 +218,7 @@ if [ "$CHECK_ONLY" = 1 ]; then
     fail=0
 
     if command -v oci >/dev/null 2>&1; then
-        printf '  %s✓%s oci installed (%s)\n' "$G" "$N" "$(oci --version 2>&1 | head -1)"
+        printf '  %s✓%s oci installed [%s]\n' "$G" "$N" "$(oci --version 2>&1 | head -1)"
     else
         printf '  %s✗%s oci not on PATH\n' "$R" "$N"; fail=1
     fi
@@ -226,7 +226,7 @@ if [ "$CHECK_ONLY" = 1 ]; then
     if python -c 'import crc32c' >/dev/null 2>&1; then
         printf '  %s✓%s crc32c importable\n' "$G" "$N"
     else
-        printf '  %s✗%s crc32c missing (oci will not start)\n' "$R" "$N"; fail=1
+        printf '  %s✗%s crc32c missing [oci will not start]\n' "$R" "$N"; fail=1
     fi
 
     if [ -f "$OCI_DIR/config" ]; then
@@ -234,7 +234,7 @@ if [ "$CHECK_ONLY" = 1 ]; then
 
         lines=$(wc -l < "$OCI_DIR/config" | tr -d ' ')
         if [ "$lines" -lt 2 ] 2>/dev/null; then
-            printf '  %s✗%s config is a single line — every key ran together\n' "$R" "$N"
+            printf '  %s✗%s config is a single line - every key ran together\n' "$R" "$N"
             printf '      A config pasted without newlines is unreadable to the SDK.\n'
             printf '      Repair it with:  bash %s --repair-config\n' "$(basename "$0")"
             fail=1
@@ -249,7 +249,7 @@ if [ "$CHECK_ONLY" = 1 ]; then
         if [ "$mode" = "600" ]; then
             printf '  %s✓%s config permission 600\n' "$G" "$N"
         else
-            printf '  %s✗%s config permission %s (should be 600)\n' "$Y" "$N" "$mode"
+            printf '  %s✗%s config permission %s [should be 600]\n' "$Y" "$N" "$mode"
         fi
         kf=$(config_value key_file)
         if [ -z "$kf" ]; then
@@ -275,14 +275,14 @@ if [ "$CHECK_ONLY" = 1 ]; then
             if [ "$kmode" = "600" ]; then
                 printf '  %s✓%s private key permission 600\n' "$G" "$N"
             else
-                printf '  %s!%s private key permission %s (should be 600)\n' "$Y" "$N" "$kmode"
+                printf '  %s!%s private key permission %s [should be 600]\n' "$Y" "$N" "$kmode"
             fi
 
             actual=$(key_fingerprint "$kf")
             declared=$(config_value fingerprint)
             if [ -z "$actual" ]; then
                 printf '  %s✗%s cannot derive a fingerprint from the key\n' "$R" "$N"
-                printf '      It may be encrypted (needs a pass_phrase), not RSA,\n'
+                printf '      It may be encrypted [needs a pass_phrase], not RSA,\n'
                 printf '      or in a format OpenSSL here cannot read.\n'
                 fail=1
             elif [ "$actual" = "$declared" ]; then
@@ -304,7 +304,7 @@ if [ "$CHECK_ONLY" = 1 ]; then
         if oci iam region list --output table >/dev/null 2>&1; then
             printf '  %s✓ authentication works%s\n\n' "$G" "$N"
         else
-            printf '  %s✗ API call failed — run: oci iam region list%s\n\n' "$R" "$N"
+            printf '  %s✗ API call failed - run: oci iam region list%s\n\n' "$R" "$N"
             exit 1
         fi
     else
@@ -319,7 +319,7 @@ fi
 # ---------------------------------------------------------------------
 
 if [ -z "${PREFIX:-}" ] || ! case "${PREFIX:-}" in *com.termux*) true;; *) false;; esac; then
-    warn "this does not look like Termux — the OCI CLI installs normally elsewhere"
+    warn "this does not look like Termux - the OCI CLI installs normally elsewhere"
 fi
 
 ARCH="$(uname -m)"
@@ -348,7 +348,7 @@ if [ "$ASSUME_YES" != 1 ]; then
         read -r reply || reply=""
         case "$reply" in [Nn]*) echo "  aborted" >&2; exit 0 ;; esac
     else
-        die "not a terminal — pass --yes"
+        die "not a terminal - pass --yes"
     fi
 fi
 
@@ -372,15 +372,15 @@ fi
 # a phone, often dying out of memory. Termux ships a prebuilt one.
 
 if python -c 'import cryptography' >/dev/null 2>&1; then
-    info "cryptography already present ($(python -c 'import cryptography; print(cryptography.__version__)'))"
+    info "cryptography already present [$[python -c 'import cryptography; print[cryptography.__version__]']]"
 else
     step "installing python-cryptography from the Termux repository"
     pkg install -y python-cryptography \
-        || warn "not available; pip will try to build it (slow)"
+        || warn "not available; pip will try to build it [slow]"
 fi
 
 # ---------------------------------------------------------------------
-# 3. crc32c — the part that actually breaks
+# 3. crc32c - the part that actually breaks
 # ---------------------------------------------------------------------
 #
 # crc32c's ARM64 source enables CPU features with:
@@ -394,7 +394,7 @@ fi
 #     vmull_p64()  needs feature 'aes'   (part of 'crypto')
 #
 # Passing both features as a compiler flag is what makes it build.
-# Supplying only +crc gets you from 20 errors down to 3 — a trap, because
+# Supplying only +crc gets you from 20 errors down to 3 - a trap, because
 # it looks like progress.
 #
 # crc32c is not optional: oci/__init__.py imports it transitively via
@@ -411,14 +411,14 @@ esac
 if python -c 'import crc32c' >/dev/null 2>&1; then
     info "crc32c already importable"
 else
-    step "building crc32c ($CRC_FLAGS)"
+    step "building crc32c [$CRC_FLAGS]"
     # A stale failed build is cached; drop it or pip reuses the failure.
     pip cache remove crc32c >/dev/null 2>&1 || true
 
     if CFLAGS="$CRC_FLAGS" pip install crc32c; then
         info "crc32c built"
     else
-        warn "compilation failed — falling back to a pure-Python implementation"
+        warn "compilation failed - falling back to a pure-Python implementation"
         SITE="$(python -c 'import site; print(site.getsitepackages()[0])')"
         cat > "$SITE/crc32c.py" <<'PYSHIM'
 """Pure-Python CRC32C (Castagnoli), used when the C extension will not build.
@@ -462,9 +462,9 @@ python -c 'import crc32c; print("crc32c ok:", crc32c.crc32c(b"test"))' >&2
 # ---------------------------------------------------------------------
 
 if command -v oci >/dev/null 2>&1; then
-    info "oci-cli already installed ($(oci --version 2>&1 | head -1))"
+    info "oci-cli already installed [$[oci --version 2>&1 | head -1]]"
 else
-    step "installing oci-cli (this downloads about 60 MB)"
+    step "installing oci-cli [this downloads about 60 MB]"
     pip install oci-cli || die "pip install oci-cli failed"
 fi
 
@@ -498,7 +498,7 @@ if [ -d "$OCI_DIR" ]; then
         esac
     fi
 else
-    info "no ~/.oci yet — run 'oci setup config' or copy your files there"
+    info "no ~/.oci yet - run 'oci setup config' or copy your files there"
 fi
 
 cat >&2 <<DONE

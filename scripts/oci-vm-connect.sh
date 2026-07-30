@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# oci-vm-connect.sh — find your OCI instances and set up SSH from Termux.
+# oci-vm-connect.sh - find your OCI instances and set up SSH from Termux.
 #
 # Supports multiple OCI profiles for managing different instances.
 #
@@ -88,7 +88,7 @@ fi
 
 need_oci() {
     command -v oci >/dev/null 2>&1 \
-        || die "oci not found — run: bash termux-oci-cli.sh"
+        || die "oci not found - run: bash termux-oci-cli.sh"
 }
 
 tenancy_ocid() {
@@ -129,7 +129,7 @@ list_instances() {
     local comp="${COMPARTMENT:-$(tenancy_ocid)}"
     [ -n "$comp" ] || die "no compartment; pass --compartment ocid1.compartment..."
 
-    step "querying instances (profile: ${PROFILE:-DEFAULT})"
+    step "querying instances - profile: ${PROFILE:-DEFAULT}"
     info "compartment: ${comp:0:40}…"
 
     local json
@@ -190,7 +190,7 @@ show_instances() {
     local comp="${COMPARTMENT:-$(tenancy_ocid)}"
     [ -n "$comp" ] || die "no compartment"
 
-    step "detailed instance listing (profile: ${PROFILE:-DEFAULT})"
+    step "detailed instance listing - profile: ${PROFILE:-DEFAULT}"
 
     local json
     json=$(eval "$OCI_CMD compute instance list --compartment-id \"$comp\" \
@@ -274,17 +274,17 @@ connect() {
     # Check if TARGET is an SSH config alias
     if [ -n "$TARGET" ] && [ -f "$HOME/.ssh/config" ]; then
         if grep -q "^Host $TARGET$" "$HOME/.ssh/config" 2>/dev/null; then
-            step "connecting to $TARGET (using SSH config alias)"
+            step "connecting to $TARGET - using SSH config alias"
             command -v ssh >/dev/null 2>&1 || die "ssh not installed"
             exec ssh "$TARGET"
         fi
     fi
     
     [ -n "$TARGET" ] || die "give an address: --connect 1.2.3.4 or --connect vm-alias"
-    [ -f "$KEY_PATH" ] || die "no key at $KEY_PATH — run --setup-key first"
+    [ -f "$KEY_PATH" ] || die "no key at $KEY_PATH - run --setup-key first"
     chmod 600 "$KEY_PATH" 2>/dev/null || true
 
-    command -v ssh >/dev/null 2>&1 || die "ssh not installed — run: pkg install openssh"
+    command -v ssh >/dev/null 2>&1 || die "ssh not installed - run: pkg install openssh"
 
     step "connecting to $SSH_USER@$TARGET"
     info "using key: $KEY_PATH"
@@ -306,7 +306,7 @@ connect() {
 
     rc=$?
     printf '\n' >&2
-    warn "connection failed (exit $rc)"
+    warn "connection failed  exit $rc"
     exit "$rc"
 }
 
@@ -320,7 +320,7 @@ trust_host() {
 
     command -v rootd >/dev/null 2>&1 || die "rootd not found"
     rootd ls --plain 2>/dev/null | grep -qx "$box" \
-        || die "no container named '$box' (use --box NAME)"
+        || die "no container named '$box' [use --box NAME]"
 
     local keys=""
 

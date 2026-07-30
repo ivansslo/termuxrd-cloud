@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# healthcheck.sh — find out which layer is broken.
+# healthcheck.sh - find out which layer is broken.
 #
 # Run this IN TERMUX.
 #
@@ -101,7 +101,7 @@ if [ -z "$VM_IP" ]; then
 else
     case "$VM_IP" in
         100.*) ok "$VM_IP is in the Tailscale range" ;;
-        *)     skip "$VM_IP is not a 100.x address — is Tailscale in use?" ;;
+        *)     skip "$VM_IP is not a 100.x address - is Tailscale in use?" ;;
     esac
 
     if ping -c 2 -W 3 "$VM_IP" >/dev/null 2>&1; then
@@ -160,7 +160,7 @@ printf '\n%s6. this device%s\n' "$B" "$N"
 if rootd caps 2>&1 | grep -q "No local Docker daemon"; then
     ok "local daemon correctly reported as impossible (expected on Android)"
 else
-    skip "kernel appears to support a local daemon — unusual for a phone"
+    skip "kernel appears to support a local daemon - unusual for a phone"
 fi
 
 # ---------------------------------------------------------------------

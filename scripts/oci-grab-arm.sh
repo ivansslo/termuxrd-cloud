@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# oci-grab-arm.sh — retry an Always Free Ampere launch until capacity appears.
+# oci-grab-arm.sh  retry an Always Free Ampere launch until capacity appears.
 #
 # Supports multiple OCI profiles for managing different instances.
 #
@@ -64,7 +64,7 @@ info() { printf '%s::%s %s\n' "$C" "$N" "$*" >&2; }
 warn() { printf '%swarning:%s %s\n' "$Y" "$N" "$*" >&2; }
 die()  { printf '%serror:%s %s\n' "$R" "$N" "$*" >&2; exit 1; }
 
-command -v oci >/dev/null 2>&1 || die "oci not found — run: bash termux-oci-cli.sh"
+command -v oci >/dev/null 2>&1 || die "oci not found  run: bash termux-oci-cli.sh"
 
 if [ -n "$PROFILE" ]; then
     info "using profile: $PROFILE"
@@ -82,7 +82,7 @@ OCI_CMD="oci"
 if [ "$INTERVAL" -lt 300 ] 2>/dev/null; then
     warn "an interval under 5 minutes invites rate limiting"
 fi
-[ -f "$KEY_PUB" ] || die "no public key at $KEY_PUB — run: ssh-keygen -t ed25519"
+[ -f "$KEY_PUB" ] || die "no public key at $KEY_PUB  run: ssh-keygen -t ed25519"
 
 # ---------------------------------------------------------------------
 # gather what a launch needs
@@ -139,7 +139,7 @@ done < <(eval "$OCI_CMD iam availability-domain list --query 'data[].name' --raw
 SUBNET=$(eval "$OCI_CMD network subnet list --compartment-id \"$COMP\" \
            --query 'data[0].id' --raw-output 2>/dev/null")
 [ -n "$SUBNET" ] && [ "$SUBNET" != "null" ] \
-    || die "no subnet found — create a VCN first"
+    || die "no subnet found  create a VCN first"
 
 IMAGE=$(eval "$OCI_CMD compute image list --compartment-id \"$COMP\" \
           --operating-system \"Canonical Ubuntu\" \
@@ -159,7 +159,7 @@ cat >&2 <<PLAN
   ${B}Hunting for Always Free Ampere capacity${N}
 
   Instance : $NAME
-  Shape    : VM.Standard.A1.Flex — $OCPUS OCPU, $MEM GB
+  Shape    : VM.Standard.A1.Flex  $OCPUS OCPU, $MEM GB
   Boot     : $BOOT_GB GB
   Region   : ${REGION:-default}
   Profile  : ${PROFILE:-DEFAULT}
@@ -199,25 +199,13 @@ while :; do
     for ad in "${ADS[@]}"; do
         printf '  [%s] try %d, %s ... ' "$(date +%H:%M:%S)" "$attempt" "$ad" >&2
 
-        out=$(eval "$OCI_CMD compute instance launch \
-                --availability-domain \"$ad\" \
-                --compartment-id \"$COMP\" \
-                --display-name \"$NAME\" \
-                --shape VM.Standard.A1.Flex \
-                --shape-config \"{\\\"ocpus\\\":$OCPUS,\\\"memoryInGBs\\\":$MEM}\" \
-                --image-id \"$IMAGE\" \
-                --subnet-id \"$SUBNET\" \
-                --boot-volume-size-in-gbs \"$BOOT_GB\" \
-                --assign-public-ip true \
-                --ssh-authorized-keys-file \"$KEY_PUB\" \
-                --wait-for-state RUNNING \
-                2>&1")
+        out=$($OCI_CMD compute instance launch --availability-domain "$ad" --compartment-id "$COMP" --display-name "$NAME" --shape VM.Standard.A1.Flex --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEM}" --image-id "$IMAGE" --subnet-id "$SUBNET" --boot-volume-size-in-gbs "$BOOT_GB" --assign-public-ip true --ssh-authorized-keys-file "$KEY_PUB" --wait-for-state RUNNING 2>&1)
         rc=$?
 
         if [ $rc -eq 0 ]; then
             printf '%sGOT IT%s\n\n' "$G" "$N" >&2
             elapsed=$(( $(date +%s) - start ))
-            step "instance created after ${attempt} attempt(s), ${elapsed}s"
+            step "instance created after ${attempt} attempts, ${elapsed}s"
 
             # Get public IP
             ip=$(echo "$out" | python3 -c '
@@ -288,7 +276,7 @@ EOF
                 backoff=$(( 120 * (2 ** (throttled - 1)) ))
                 [ "$backoff" -gt 1800 ] && backoff=1800
                 printf '%srate limited%s\n' "$Y" "$N" >&2
-                warn "throttled ${throttled}x — waiting $((backoff / 60)) min"
+                warn "throttled ${throttled}x  waiting $[[backoff / 60]] min"
                 sleep "$backoff"
                 continue ;;
             *)
@@ -298,7 +286,7 @@ EOF
 
     if [ $((attempt % 12)) -eq 0 ]; then
         mins=$(( ( $(date +%s) - start ) / 60 ))
-        info "still hunting — $attempt attempts over ${mins} min"
+        info "still hunting  $attempt attempts over ${mins} min"
     fi
 
     [ "$ONCE" = 1 ] && warn "no capacity; --once was given, stopping" && exit 1
