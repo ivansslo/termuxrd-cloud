@@ -110,21 +110,30 @@ fi
 info "region: ${REGION:-default}"
 
 # List availability domains
+step "listing availability domains"
+AD_DATA=$($OCI_CMD iam availability-domain list --query 'data[].name' --raw-output 2>&1) || {
+    echo -e "${R}OCI Error:${N} $AD_DATA" >&2
+    die "could not list availability domains - check your profile and connectivity"
+}
+
 ADS=()
 while IFS= read -r ad; do
     [ -n "$ad" ] && ADS+=("$ad")
-done < <($OCI_CMD iam availability-domain list --query 'data[].name' --raw-output 2>/dev/null | tr -d '[],"' | grep -v '^$' | sed 's/^ *//')
+done < <(echo "$AD_DATA" | tr -d '[],"' | grep -v '^$' | sed 's/^ *//')
 
-[ "${#ADS[@]}" -gt 0 ] || die "could not list availability domains"
-
-SUBNET=$($OCI_CMD network subnet list --compartment-id "$COMP" --query 'data[0].id' --raw-output 2>/dev/null)
-[ -n "$SUBNET" ] && [ "$SUBNET" != "null" ] || die "no subnet found - create a VCN first"
+SUBNET=$($OCI_CMD network subnet list --compartment-id "$COMP" --query 'data[0].id' --raw-output 2>&1) || {
+    echo -e "${R}OCI Error:${N} $SUBNET" >&2
+    die "no subnet found - create a VCN first"
+}
 
 IMAGE=$($OCI_CMD compute image list --compartment-id "$COMP" \
           --operating-system "Canonical Ubuntu" \
           --operating-system-version "24.04 Minimal aarch64" \
           --shape VM.Standard.A1.Flex --sort-by TIMECREATED \
-          --query 'data[0].id' --raw-output 2>/dev/null)
+          --query 'data[0].id' --raw-output 2>&1) || {
+    echo -e "${R}OCI Error:${N} $IMAGE" >&2
+    die "error listing images"
+}
 
 if [ -z "$IMAGE" ] || [ "$IMAGE" = "null" ]; then
     IMAGE=$($OCI_CMD compute image list --compartment-id "$COMP" \

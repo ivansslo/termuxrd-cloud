@@ -111,11 +111,9 @@ list_instances() {
     info "compartment: ${comp:0:40}..."
 
     local json
-    json=$($OCI_CMD compute instance list --compartment-id "$comp" --lifecycle-state RUNNING --all 2>/dev/null) || {
-        warn "no instances in that compartment, or access denied"
-        printf '\n  List your compartments with:\n'
-        printf '    oci iam compartment list --output table\n\n'
-        return 1
+    json=$($OCI_CMD compute instance list --compartment-id "$comp" --lifecycle-state RUNNING --all 2>&1) || {
+        echo -e "${R}OCI Error:${N} $json" >&2
+        die "could not list instances - check your profile and compartment"
     }
 
     printf '\n  %sRunning instances for profile %s%s\n\n' "$B" "${PROFILE:-DEFAULT}" "$N"

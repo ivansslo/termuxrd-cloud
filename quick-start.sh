@@ -21,11 +21,12 @@ main_menu() {
     echo -e "6) ${C}Local Box Tooling${N} (Tailscale & SSH via rootd-fs)"
     echo -e "7) ${C}Healthcheck${N} (Diagnose setup)"
     echo -e "8) ${C}AI Agent Manager${N} (Deploy AI to VM)"
+    echo -e "d) ${Y}Debug OCI Profile${N}"
     echo -e "p) ${Y}Switch OCI Profile${N}"
     echo -e "q) Exit"
     echo
 
-    read -p "Select [1-8/p/q]: " pilihan
+    read -p "Select [1-8/d/p/q]: " pilihan
 
     case $pilihan in
         1) bash scripts/termux-setup.sh ;;
@@ -48,6 +49,16 @@ main_menu() {
         6) local_box_menu ;;
         7) bash scripts/healthcheck.sh ; read -p "Press Enter to continue..." ; main_menu ;;
         8) ai_manager_menu ;;
+        d)
+            echo -e "\n${B}Debugging OCI Profile: ${Y}${OCI_PROFILE}${N}"
+            echo -e "Testing connectivity and permissions..."
+            oci iam region list --profile "$OCI_PROFILE" --output table || {
+                echo -e "\n${R}OCI CLI Test Failed!${N}"
+                echo -e "Check your ~/.oci/config and API key."
+            }
+            read -p "Press Enter to continue..."
+            main_menu
+            ;;
         p) 
             echo -e "\n${B}Available OCI Profiles in ~/.oci/config:${N}"
             if [ -f "$HOME/.oci/config" ]; then
