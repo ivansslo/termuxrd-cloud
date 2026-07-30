@@ -117,7 +117,8 @@ p.read(sys.argv[1])
 for section in p.sections():
     region = p[section].get("region", "N/A")
     tenancy = p[section].get("tenancy", "N/A")
-    print(f"  {G}{section}{N}: region={region}, tenancy={tenancy[:20]}...")
+    short_tenancy = tenancy[:20] + "..." if len(tenancy) > 20 else tenancy
+    print("  [%s] region=%s, tenancy=%s" % (section, region, short_tenancy))
 PY
     echo ""
     info "usage: --profile PROFILENAME"
@@ -178,7 +179,8 @@ for inst in items:
     except Exception:
         pass
     
-    print(f"  {name:<23} {shape:<25} {pub_ip or \"N/A\":<15} {state}")
+    pub_ip_display = pub_ip if pub_ip else "N/A"
+    print("  %-23s %-25s %-15s %s" % (name, shape, pub_ip_display, state))
 '
 }
 
@@ -258,7 +260,7 @@ setup_key() {
     printf '  %sAuthorise this key ON THE VM%s\n\n' "$B" "$N"
     printf '  Once you are on the VM, run:\n\n'
     printf '    mkdir -p ~/.ssh && chmod 700 ~/.ssh\n'
-    printf '    echo '"'"'%s'"'"' >> ~/.ssh/authorized_keys\n' "$(cat "$KEY_PATH.pub")"
+    printf '    echo %s >> ~/.ssh/authorized_keys\n' "$(cat "$KEY_PATH.pub")"
     printf '    chmod 600 ~/.ssh/authorized_keys\n\n'
     printf '  %sThen, from Termux:%s\n\n' "$B" "$N"
     printf '    bash %s --connect <public-ip> --user %s\n\n' "$(basename "$0")" "$SSH_USER"
