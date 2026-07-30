@@ -27,7 +27,7 @@ else     → ERROR: Could not install Python 3 based on operating system
 ```
 
 Termux has `pkg`, none of those three. The script also calls `sudo`,
-reads `/etc/os-release`, and installs into `/usr/local/bin` — none of
+reads `/etc/os-release`, and installs into `/usr/local/bin` - none of
 which exist or are writable on Android.
 
 ---
@@ -51,7 +51,7 @@ supposed to enable:
 | Function | Needs feature |
 |---|---|
 | `__crc32cd()` | `crc` |
-| `vmull_p64()` | `aes` — part of `crypto` |
+| `vmull_p64()` | `aes` - part of `crypto` |
 
 ### The trap
 
@@ -128,7 +128,7 @@ producing a file like this:
 [DEFAULT] user=ocid1... fingerprint=a1:3a... region=ap-singapore-1 key_file="~/.oci/oci_api_key.pem"
 ```
 
-The SDK reads **nothing** from that — not a partial config, nothing at
+The SDK reads **nothing** from that - not a partial config, nothing at
 all. Check quickly:
 
 ```bash
@@ -229,7 +229,7 @@ Your existing containers are for other jobs:
 | Container | Purpose |
 |---|---|
 | `alpine` | general scratch space |
-| `docker` | Docker client → remote daemon (chapters 3–4) |
+| `docker` | Docker client → remote daemon (chapters 3-4) |
 
 Do not put the OCI CLI in the `docker` container. Keeping one tool per
 container means you can delete or rebuild one without disturbing the
@@ -261,7 +261,7 @@ rootd sh ocicli -- oci iam region list --output table
 
 > ⚠️ Your private key now exists in two places. Rotating it means
 > updating both, and `rootd backup ocicli` will place a copy inside the
-> archive — store that archive as carefully as the key itself.
+> archive - store that archive as carefully as the key itself.
 
 ---
 
@@ -316,7 +316,7 @@ already excludes it.
 
 For occasional checks, **Cloud Shell** is faster than any of this: open
 cloud.oracle.com, click the `>_` icon. The CLI is installed and already
-authenticated — no key on your phone at all. It works from a phone
+authenticated - no key on your phone at all. It works from a phone
 browser.
 
 ```bash

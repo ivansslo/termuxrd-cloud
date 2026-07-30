@@ -12,7 +12,7 @@ Cara membedakan "tunggu saja" dari "ubah rencana".
 | `rate limited` (HTTP 429) | permintaan **ditolak** sebelum diperiksa | ⚠️ berhenti, mundur |
 
 Bedanya penting. Saat `no capacity`, Anda benar-benar mengantre. Saat
-`rate limited`, kapasitas **tidak pernah dicek sama sekali** — seratus
+`rate limited`, kapasitas **tidak pernah dicek sama sekali** - seratus
 percobaan sama dengan nol pemeriksaan, dan Anda bisa melewatkan momen
 kosong tanpa sadar.
 
@@ -25,7 +25,7 @@ throttle. Script menangani ini dengan mundur bertahap: 2, 4, 8, 16, lalu
 ## 11.2 Kalau sudah kena throttle
 
 **Berhenti dulu satu jam.** Ini terasa berlawanan dengan naluri, tapi
-selama throttled Anda tidak sedang mengantre — hanya membuang baterai.
+selama throttled Anda tidak sedang mengantre - hanya membuang baterai.
 
 ```bash
 # Ctrl-C, tunggu ~1 jam, lalu lebih santai:
@@ -49,8 +49,8 @@ Yang menaikkan peluang:
 
 | Faktor | Pengaruh |
 |---|---|
-| 1 OCPU, bukan 4 | **besar** — butuh satu core bebas, bukan empat |
-| Interval wajar | **besar** — hindari throttle |
+| 1 OCPU, bukan 4 | **besar** - butuh satu core bebas, bukan empat |
+| Interval wajar | **besar** - hindari throttle |
 | Boot volume kecil (50 GB) | kecil |
 | Jam sepi (dini hari) | kecil |
 | Ganti AD | **nol** di region satu-AD seperti Singapura |
@@ -70,7 +70,7 @@ Home region tidak bisa diganti setelah akun dibuat.
 
 Ini yang saya sarankan kalau Anda tidak ingin menunggu berhari-hari.
 
-**`VM.Standard.E2.1.Micro`** — AMD x86, juga *Always Free*, dan hampir
+**`VM.Standard.E2.1.Micro`** - AMD x86, juga *Always Free*, dan hampir
 selalu tersedia karena jauh lebih sedikit peminatnya.
 
 | | A1.Flex (ARM) | E2.1.Micro (x86) |
@@ -83,7 +83,7 @@ selalu tersedia karena jauh lebih sedikit peminatnya.
 
 **Keduanya boleh jalan bersamaan.** Jadi ambil E2 sekarang untuk
 menyelesaikan tutorial, dan biarkan pemburu ARM berjalan di latar. Saat
-dapat, pindahkan beban kerja — atau simpan keduanya.
+dapat, pindahkan beban kerja - atau simpan keduanya.
 
 Buat lewat CLI:
 
@@ -111,7 +111,7 @@ oci compute instance launch \
 Atau lewat Console: **Change shape → Specialty and legacy →
 VM.Standard.E2.1.Micro**.
 
-> Dengan RAM 1 GB, tambahkan swap sebelum menjalankan Docker — lihat
+> Dengan RAM 1 GB, tambahkan swap sebelum menjalankan Docker - lihat
 > [2.6](02-docker-server.md#26-optional-swap-for-a-small-vm).
 
 ---
@@ -128,7 +128,7 @@ Dan di sistem:
 
 - Setelan → Apps → Termux → Baterai → **Tanpa batasan**
 - Aktifkan notifikasi persisten Termux
-- Xiaomi, Oppo, Vivo, Huawei perlu autostart allowlist —
+- Xiaomi, Oppo, Vivo, Huawei perlu autostart allowlist -
   [dontkillmyapp.com](https://dontkillmyapp.com)
 
 Cara paling andal justru **menjalankan pemburu di server lain** yang
@@ -141,7 +141,7 @@ ssh ubuntu@<aws-ip> 'tmux new -d -s hunt "bash ~/oci-grab-arm.sh --ocpus 1 --mem
 ```
 
 ⚠️ Ini menaruh private key OCI Anda di mesin kedua. Kalau melakukannya,
-pertimbangkan user OCI terpisah dengan policy terbatas —
+pertimbangkan user OCI terpisah dengan policy terbatas -
 [chapter 9.7](09-oci-cli-termux.md#97-security).
 
 ---

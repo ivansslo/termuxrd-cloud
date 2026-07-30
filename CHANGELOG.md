@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.4.2] — 2026-07-28
+## [1.4.2] - 2026-07-28
 
 ### Fixed
 
@@ -20,16 +20,16 @@
 
 ### Added
 
-- `docs/04-connect.md` §4.3c — why a hang differs from an error here,
+- `docs/04-connect.md` §4.3c - why a hang differs from an error here,
   and how to get the real message with `BatchMode=yes`.
 
-## [1.4.1] — 2026-07-28
+## [1.4.1] - 2026-07-28
 
 ### Fixed
 
 - **`--trust-host` asked you to trust keys you had never verified.** It
   ran a bare `ssh-keyscan`, which returns every host key the server
-  offers — RSA, ECDSA and Ed25519 — while a user has typically verified
+  offers - RSA, ECDSA and Ed25519 - while a user has typically verified
   only the one ssh showed on first connection. Approving all three
   accepts two unverified fingerprints, defeating the check.
 
@@ -41,15 +41,15 @@
 
   Reported by a user who noticed the extra fingerprints.
 
-## [1.4.0] — 2026-07-28
+## [1.4.0] - 2026-07-28
 
 ### Added
 
-- **`--trust-host`** — writes a VM's SSH host key into a rootd box's
+- **`--trust-host`** - writes a VM's SSH host key into a rootd box's
   `known_hosts`, after showing the fingerprints and asking.
 
   `docker --host ssh://...` runs `ssh -T`, and without a TTY ssh cannot
-  prompt about an unknown host — so the first connection always dies
+  prompt about an unknown host - so the first connection always dies
   with `Host key verification failed`. The container also keeps its own
   `known_hosts`, so trusting the host from Termux does not help it.
   Documented in `docs/04-connect.md` §4.3b.
@@ -58,7 +58,7 @@
   that turns off the protection against a man-in-the-middle, for a step
   you perform once per host.
 
-## [1.3.4] — 2026-07-28
+## [1.3.4] - 2026-07-28
 
 ### Fixed
 
@@ -70,13 +70,13 @@
   now arrives on stdin, where the parser handles it correctly.
 - A parse failure is now reported instead of dumping a traceback.
 
-## [1.3.3] — 2026-07-28
+## [1.3.3] - 2026-07-28
 
 ### Fixed
 
 - **The 60-second backoff after a 429 made throttling worse.** Retrying
   soon after being rate limited typically extends the penalty. Backoff
-  is now geometric — 2, 4, 8, 16, capped at 30 minutes — and resets once
+  is now geometric - 2, 4, 8, 16, capped at 30 minutes - and resets once
   a request is genuinely answered.
 - After three consecutive throttles the script says plainly that
   capacity is no longer being checked at all, and points at the
@@ -86,12 +86,12 @@
 
 ### Added
 
-- **`docs/11-free-tier-capacity.md`** — distinguishes `no capacity`
+- **`docs/11-free-tier-capacity.md`** - distinguishes `no capacity`
   (request answered, keep waiting) from `rate limited` (request refused,
   stop), and covers the x86 `E2.1.Micro` fallback that is nearly always
   available and can run alongside an ARM instance later.
 
-## [1.3.2] — 2026-07-28
+## [1.3.2] - 2026-07-28
 
 ### Fixed
 
@@ -105,7 +105,7 @@
   than an unknown error, and backs off for 60 seconds instead of
   hammering the API on the next tick.
 
-## [1.3.1] — 2026-07-28
+## [1.3.1] - 2026-07-28
 
 ### Fixed
 
@@ -114,19 +114,19 @@
 
 ### Changed
 
-- `oci-grab-arm.sh` now recognises single-AD regions — Singapore has
-  exactly one — where rotating availability domains does nothing. It
+- `oci-grab-arm.sh` now recognises single-AD regions - Singapore has
+  exactly one - where rotating availability domains does nothing. It
   says so and suggests the only lever that actually helps: asking for a
   smaller shape. A 4-OCPU request needs four free cores on one host,
   which is far rarer than one.
 - Prints a progress summary every twelfth pass so a long hunt does not
   look like it has stalled.
 
-## [1.3.0] — 2026-07-28
+## [1.3.0] - 2026-07-28
 
 ### Added
 
-- **`scripts/oci-grab-arm.sh`** — retries an Always Free Ampere launch
+- **`scripts/oci-grab-arm.sh`** - retries an Always Free Ampere launch
   until Oracle has capacity. `Out of capacity for shape
   VM.Standard.A1.Flex` is not a misconfiguration; the free ARM pool in
   popular regions is simply contended, and the fix is to keep asking.
@@ -135,14 +135,14 @@
   failures apart from capacity failures and stops immediately on those,
   and fires a Termux notification plus vibration when it wins.
 
-## [1.2.1] — 2026-07-28
+## [1.2.1] - 2026-07-28
 
 ### Fixed
 
 - **`--setup-key` implied Cloud Shell was a valid place to authorise the
   key.** It said "paste this into the VM (Cloud Shell works)", which
   reads as though Cloud Shell *is* the VM. It is a separate Oracle
-  machine, so a key added there grants nothing on your instance —
+  machine, so a key added there grants nothing on your instance -
   and the resulting `Permission denied (publickey)` gives no clue why.
   The instructions now show the difference in prompts and explain how to
   reach the VM the first time.
@@ -152,15 +152,15 @@
 - A failed connection now lists the likely causes in order, with the
   `ssh -v` command to confirm.
 
-## [1.2.0] — 2026-07-28
+## [1.2.0] - 2026-07-28
 
 ### Added
 
-- **`scripts/oci-vm-connect.sh`** — lists your OCI instances with their
+- **`scripts/oci-vm-connect.sh`** - lists your OCI instances with their
   public and private IPs via the CLI, generates or reuses an SSH key,
   prints the exact line to authorise on the VM, and connects with
   keepalives suited to a mobile connection.
-- **`docs/10-ssh-into-oci-vm.md`** — getting a real terminal instead of
+- **`docs/10-ssh-into-oci-vm.md`** - getting a real terminal instead of
   the browser console, including how to copy logs out (clipboard, files,
   `scp`) and how to survive a dropped signal with `tmux`.
 
@@ -172,29 +172,29 @@ and the **SSH key** (`~/.ssh/id_ed25519`, for shell access). They are
 not interchangeable, and reusing one for both is a bad idea even where
 the maths allows it.
 
-## [1.1.3] — 2026-07-27
+## [1.1.3] - 2026-07-27
 
 ### Fixed
 
 - **False "cannot read the private key" in `--check`.** The fingerprint
   was derived by text-parsing `openssl md5 -c` output, which some builds
-  print as `MD5(stdin)=aa:bb` with no space — field-splitting then
+  print as `MD5(stdin)=aa:bb` with no space - field-splitting then
   yielded an empty string and the key was declared unreadable even
   though `oci` worked perfectly.
 - **A worse variant of the same bug:** for an *encrypted* private key,
   `openssl rsa` writes nothing and the pipeline hashed empty input,
-  producing `d41d8cd9...` — a plausible-looking fingerprint that is
+  producing `d41d8cd9...` - a plausible-looking fingerprint that is
   simply wrong. An encrypted key is now reported as such.
 
 Fingerprints are now computed with Python's `cryptography` (already
 present, since `oci-cli` depends on it) instead of scraping command
 output.
 
-## [1.1.2] — 2026-07-27
+## [1.1.2] - 2026-07-27
 
 ### Added
 
-- **`--repair-config`** — rebuilds a mangled `~/.oci/config`. Pasting
+- **`--repair-config`** - rebuilds a mangled `~/.oci/config`. Pasting
   the Console's snippet into a terminal frequently loses the newlines,
   leaving every key on one line; the SDK then reads *nothing*, and
   `oci` fails with no useful message. The repair splits on key names,
@@ -204,7 +204,7 @@ output.
 ### Fixed
 
 - `--check` now validates that the config actually **parses** with
-  Python's `configparser` — the same reader the SDK uses — instead of
+  Python's `configparser` - the same reader the SDK uses - instead of
   matching lines with `sed`. A single-line config previously looked
   half-valid: the permission check passed, then `key_file` was reported
   missing, which pointed at the wrong problem.
@@ -212,27 +212,27 @@ output.
   comment, or a leading `~`/`$HOME`. Each is read literally by the SDK
   and each was previously lumped together as "not absolute".
 
-## [1.1.1] — 2026-07-27
+## [1.1.1] - 2026-07-27
 
 ### Fixed
 
 - **`--check` exited silently partway through the report.** Under
   `set -euo pipefail`, a `grep` that finds nothing returns 1 and killed
-  the script — so a config with no `key_file` line stopped the output
+  the script - so a config with no `key_file` line stopped the output
   after "config permission" with no explanation and exit code 1.
   Lookups now go through a helper that returns an empty string instead
   of aborting, and the missing key is reported as a normal finding.
 - `--check` also reports private key permissions, and distinguishes an
   unreadable or non-RSA key from a fingerprint mismatch.
 
-## [1.1.0] — 2026-07-27
+## [1.1.0] - 2026-07-27
 
 ### Added
 
-- **`scripts/termux-oci-cli.sh`** — installs the OCI CLI on Termux,
+- **`scripts/termux-oci-cli.sh`** - installs the OCI CLI on Termux,
   which Oracle's own `install.sh` cannot do: it probes for
   dnf/yum/apt-get, finds none, and exits.
-- **`docs/09-oci-cli-termux.md`** — the full explanation, plus how to
+- **`docs/09-oci-cli-termux.md`** - the full explanation, plus how to
   use an API key that is already on the phone, and which container the
   CLI should live in.
 - `--check` mode that verifies the install end to end: `oci` on PATH,
@@ -245,7 +245,7 @@ output.
 features with `#pragma GCC target ("+crc+crypto")`, which is GCC syntax;
 clang ignores it and then rejects the intrinsics behind it.
 
-Passing only `+crc` takes you from 20 errors to 3 — which looks like
+Passing only `+crc` takes you from 20 errors to 3 - which looks like
 progress but still fails, because `vmull_p64()` needs `aes` as well.
 Both features are required:
 
@@ -264,7 +264,7 @@ dropping `+crypto` from the flags.
 
 Reported and confirmed working on aarch64 Android by @ivansslo.
 
-## [1.0.0] — 2026-07-27
+## [1.0.0] - 2026-07-27
 
 Initial release: eight chapters and three scripts for running Docker on
 an Oracle Cloud or AWS VM from Android over Tailscale.

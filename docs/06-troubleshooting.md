@@ -1,6 +1,6 @@
 # 6. Troubleshooting
 
-Work top to bottom — the checks are ordered so each one rules out a
+Work top to bottom - the checks are ordered so each one rules out a
 layer.
 
 Quick automated pass:
@@ -60,7 +60,7 @@ tailscale netcheck
 tailscale ping 100.x.y.z
 ```
 
-`via DERP` means it fell back to a relay — working but slower. `via
+`via DERP` means it fell back to a relay - working but slower. `via
 direct` is ideal. Neither means the tunnel is down.
 
 ---
@@ -84,7 +84,7 @@ chmod 600 ~/.ssh/authorized_keys
 
 **Right user?** `ubuntu`, `opc`, and `ec2-user` are not interchangeable.
 
-**Ask SSH what it is doing** — this almost always reveals the cause:
+**Ask SSH what it is doing** - this almost always reveals the cause:
 
 ```bash
 rootd sh docker -- ssh -v ubuntu@100.x.y.z 2>&1 | grep -i -E 'offering|denied|auth'
@@ -134,7 +134,7 @@ sudo usermod -aG docker "$USER" && newgrp docker
 ## `ssh: Could not resolve hostname`
 
 Use the numeric `100.x.y.z` rather than a MagicDNS name. MagicDNS
-resolution inside a rootless container is unreliable — the container
+resolution inside a rootless container is unreliable - the container
 does not inherit Android's resolver.
 
 If you want names, add a hosts entry inside the container:
@@ -168,7 +168,7 @@ tailscale ping 100.x.y.z
 ```
 
 `via DERP` means relayed traffic. Usually the phone is on a carrier NAT
-that blocks direct UDP. Options: switch to Wi-Fi, or accept the relay —
+that blocks direct UDP. Options: switch to Wi-Fi, or accept the relay -
 it is encrypted and adequate for a terminal.
 
 Also check the VM is not simply out of memory:
@@ -177,7 +177,7 @@ Also check the VM is not simply out of memory:
 rootd sh docker -- ssh ubuntu@100.x.y.z 'free -h; uptime'
 ```
 
-Add swap if it is thrashing — see
+Add swap if it is thrashing - see
 [2.6](02-docker-server.md#26-optional-swap-for-a-small-vm).
 
 ---
@@ -189,7 +189,7 @@ Android aggressively stops background apps.
 - Settings → Apps → Termux → Battery → **Unrestricted**
 - Enable Termux's persistent notification (it makes the process
   foreground and much harder to kill)
-- Some vendors — Xiaomi, Oppo, Vivo, Huawei — need Termux added to an
+- Some vendors - Xiaomi, Oppo, Vivo, Huawei - need Termux added to an
   explicit autostart allowlist. See [dontkillmyapp.com](https://dontkillmyapp.com).
 
 ---
@@ -204,7 +204,7 @@ rootd autostart off
 ```
 
 The hook is designed to fall through to the host shell when the
-container is unavailable, so this should be rare — but the escape hatch
+container is unavailable, so this should be rare - but the escape hatch
 exists regardless.
 
 ---
@@ -228,7 +228,7 @@ dock system df
 dock system prune -a
 ```
 
-Unbounded container logs are the usual culprit — see
+Unbounded container logs are the usual culprit - see
 [2.7](02-docker-server.md#27-optional-cap-the-logs).
 
 ---

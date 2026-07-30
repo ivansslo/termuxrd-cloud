@@ -9,7 +9,7 @@ Time: about 10 minutes.
 ## 4.1 Generate an SSH key
 
 Docker's `ssh://` transport uses your normal SSH client, so it needs a
-key. Keep the key **inside the container** that will use it — then
+key. Keep the key **inside the container** that will use it - then
 `rootd backup` captures it along with everything else.
 
 ```bash
@@ -29,7 +29,7 @@ rootd ssh docker --keygen
 
 ### Using Tailscale SSH instead
 
-If you enabled `--ssh` on the VM, you can skip keys entirely — the
+If you enabled `--ssh` on the VM, you can skip keys entirely - the
 tailnet authenticates you. Jump to [4.3](#43-point-the-client-at-the-vm)
 and test with `tailscale ssh` first. Keys are still worth having as a
 fallback for when the Tailscale SSH policy is not what you expected.
@@ -55,7 +55,7 @@ rootd sh docker -- ssh -o StrictHostKeyChecking=accept-new ubuntu@100.x.y.z 'hos
 ```
 
 It should print your VM's hostname. If it asks for a password, the key
-is not being accepted — see
+is not being accepted - see
 [troubleshooting](06-troubleshooting.md#ssh-asks-for-a-password).
 
 ---
@@ -89,7 +89,7 @@ stderr=Host key verification failed.
 Two things combine to cause it:
 
 - `docker --host ssh://...` runs `ssh -T ... docker system dial-stdio`.
-  With **no TTY**, ssh cannot ask *"trust this host?"* — it just fails.
+  With **no TTY**, ssh cannot ask *"trust this host?"* - it just fails.
 - The container keeps its **own** `known_hosts`. Verifying the host from
   Termux earlier did nothing for the box.
 
@@ -113,7 +113,7 @@ ssh-keygen -F 100.x.y.z | grep -v '^#' | \
 ```
 
 > Note what this deliberately avoids. A plain `ssh-keyscan 100.x.y.z`
-> returns *every* host key the server offers — RSA, ECDSA and Ed25519 —
+> returns *every* host key the server offers - RSA, ECDSA and Ed25519 -
 > but you only ever verified one of them. Trusting all three means
 > accepting two fingerprints you have never seen, which is exactly the
 > check you are trying not to skip. If no local record exists, the
@@ -133,7 +133,7 @@ A hang is a different fault from an error, and it has one usual cause:
 `--setup-key` writes to `~/.ssh/` in *Termux*. The Docker client runs
 inside a rootd box with its own `/root/.ssh`. With no identity to offer,
 ssh falls back to other authentication methods and waits for input that
-can never arrive — stdin is already carrying `docker system dial-stdio`.
+can never arrive - stdin is already carrying `docker system dial-stdio`.
 So it sits there rather than returning an error.
 
 Check:
@@ -166,7 +166,7 @@ rootd sh docker -- ssh -o BatchMode=yes -o ConnectTimeout=10 \
 
 > The key now exists in Termux **and** in the box. Rotating it means
 > replacing both, and `rootd backup docker` will carry a copy inside the
-> archive — store that archive as carefully as the key.
+> archive - store that archive as carefully as the key.
 
 ---
 
@@ -177,7 +177,7 @@ rootd sh docker -- docker version
 ```
 
 You should see **both** a Client and a Server block. The Server section
-is your VM — its version, its kernel, its architecture.
+is your VM - its version, its kernel, its architecture.
 
 ```bash
 rootd sh docker -- docker ps
@@ -237,7 +237,7 @@ rootd autostart off
 
 ## 4.7 Back up the working setup
 
-Now that everything works, capture it — including the SSH key and the
+Now that everything works, capture it - including the SSH key and the
 `DOCKER_HOST` setting:
 
 ```bash

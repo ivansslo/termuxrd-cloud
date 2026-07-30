@@ -22,7 +22,7 @@ Ubuntu ships cloud-specific kernels, so this is a reliable signal. A
 node reporting `6.14.0-1018-aws` is an EC2 instance, whatever the
 machine is named.
 
-Cross-check by asking the metadata service — each cloud has its own, and
+Cross-check by asking the metadata service - each cloud has its own, and
 only one will answer:
 
 ```bash
@@ -70,7 +70,7 @@ sudo netfilter-persistent save
 
 Plenty of forum answers tell you to delete the REJECT line instead.
 Don't. The default INPUT policy is `ACCEPT`, so removing it leaves the
-host with effectively no firewall — every port open to the internet.
+host with effectively no firewall - every port open to the internet.
 Inserting above it keeps the deny-by-default behaviour intact.
 
 Oracle Linux uses `firewalld` rather than raw iptables:
@@ -88,7 +88,7 @@ irrelevant. Services are reachable over `100.x.y.z` and nothing listens
 on the public interface.
 
 The section above is here for when you *do* need a genuinely public
-port — a real website, say.
+port - a real website, say.
 
 ---
 
@@ -97,14 +97,14 @@ port — a real website, say.
 | | Oracle Cloud | AWS EC2 |
 |---|---|---|
 | Cloud firewall | Security List / NSG | Security Group |
-| Host firewall preloaded | **yes** — iptables REJECT | no |
+| Host firewall preloaded | **yes** - iptables REJECT | no |
 | Default users | `ubuntu`, `opc` | `ubuntu`, `ec2-user` |
 | Free tier compute | 4 vCPU / 24 GB ARM, always free | t2/t3.micro, 12 months |
 | Free egress | 10 TB/month | 100 GB/month |
 | Metadata service | `/opc/v2/` | `/latest/meta-data/` |
 | Block storage | 200 GB free | 30 GB free (12 months) |
 
-For this use case OCI's free tier is markedly more generous — an
+For this use case OCI's free tier is markedly more generous - an
 Ampere A1 with 4 cores and 24 GB runs a lot of containers. The tradeoff
 is that ARM-only free capacity is often unavailable in popular regions,
 and the iptables quirk catches newcomers.
@@ -128,7 +128,7 @@ oci compute instance launch \
   --assign-public-ip true
 ```
 
-Read those values from environment variables or the OCI config file —
+Read those values from environment variables or the OCI config file -
 never commit them. See [8. Security](08-security.md).
 
 ---
@@ -176,7 +176,7 @@ IMDSv2 is enforced on newer instances, which is why the metadata check
 above requests a token first.
 
 If you use the AWS CLI, prefer an **instance role** over static access
-keys — no credentials to store or leak:
+keys - no credentials to store or leak:
 
 ```bash
 aws sts get-caller-identity     # works with no keys when a role is attached

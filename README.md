@@ -23,13 +23,13 @@ Built on [termuxrd](https://github.com/ivansslo/termuxrd) and
 ## Read this first
 
 **A Docker daemon cannot run on a stock Android kernel.** It needs real
-root, cgroups, overlayfs and veth pairs — none of which an unprivileged
+root, cgroups, overlayfs and veth pairs - none of which an unprivileged
 Android app has. Guides promising "Docker in Termux" are either using a
 rooted device with a custom kernel, or they do not work.
 
 This guide does the thing that *does* work: run the Docker **client** on
 your phone against a real daemon on a real Linux VM. That is how the
-Docker CLI was designed — it has always been a REST client over a
+Docker CLI was designed - it has always been a REST client over a
 socket. You get the complete command set, backed by the server's real
 cgroups and real storage driver.
 
@@ -49,9 +49,9 @@ rootd caps
 | 2 | [Docker on the VM](docs/02-docker-server.md) | 10 min |
 | 3 | [Termux setup](docs/03-termux-setup.md) | 15 min |
 | 4 | [Connecting the two](docs/04-connect.md) | 10 min |
-| 5 | [Real workloads](docs/05-workloads.md) | — |
-| 6 | [Troubleshooting](docs/06-troubleshooting.md) | — |
-| 7 | [OCI vs AWS differences](docs/07-oci-vs-aws.md) | — |
+| 5 | [Real workloads](docs/05-workloads.md) | - |
+| 6 | [Troubleshooting](docs/06-troubleshooting.md) | - |
+| 7 | [OCI vs AWS differences](docs/07-oci-vs-aws.md) | - |
 | 8 | [Security](docs/08-security.md) | read it |
 | 9 | [OCI CLI on Termux](docs/09-oci-cli-termux.md) | 10 min |
 | 10 | [SSH into an OCI VM](docs/10-ssh-into-oci-vm.md) | 10 min |
@@ -109,7 +109,7 @@ attack surface than exposing `dockerd` on `tcp://2375`.
 
 ## Scripts
 
-Convenience wrappers for the manual steps. Read them before running —
+Convenience wrappers for the manual steps. Read them before running -
 that advice applies to every script, including these.
 
 | Script | Runs on | Does |
@@ -125,14 +125,14 @@ that advice applies to every script, including these.
 
 ## Requirements
 
-**VM** — any Linux with 1 GB RAM. Oracle Cloud Free Tier (4 vCPU /
+**VM** - any Linux with 1 GB RAM. Oracle Cloud Free Tier (4 vCPU /
 24 GB ARM) and AWS free tier both work.
 
-**Phone** — Termux from [F-Droid](https://f-droid.org/packages/com.termux/)
+**Phone** - Termux from [F-Droid](https://f-droid.org/packages/com.termux/)
 or GitHub. *Not* the Play Store build; it is outdated and its packages
 break.
 
-**Account** — a free [Tailscale](https://tailscale.com) account. Up to
+**Account** - a free [Tailscale](https://tailscale.com) account. Up to
 100 devices.
 
 ---
@@ -155,7 +155,7 @@ secrets, and what to do if you have already pasted one somewhere.
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).
 
 Not affiliated with Tailscale Inc., Docker Inc., Oracle, Amazon, or the
 Termux project. Product names are used only to describe interoperability.

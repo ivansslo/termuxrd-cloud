@@ -14,7 +14,7 @@ or [GitHub releases](https://github.com/termux/termux-app/releases).
 
 **Not the Play Store build.** It is frozen at an old version, its package
 repositories no longer resolve, and installs fail in confusing ways. If
-you already have it, uninstall first — the two signatures conflict.
+you already have it, uninstall first - the two signatures conflict.
 
 ---
 
@@ -45,7 +45,7 @@ Alpine is a good default here: about 8 MB, and the Docker client is all
 we need inside it. Use `--distro ubuntu` if you want a fuller userland.
 
 The installer shows a plan and asks before changing anything. When it
-offers autostart, **say no for now** — get things working manually
+offers autostart, **say no for now** - get things working manually
 first, then enable it in [chapter 4](04-connect.md).
 
 Verify:
@@ -77,7 +77,7 @@ rootd sh docker -- docker --version
 ```
 
 You should see something like `Docker version 27.x.x`. It cannot do
-anything yet — there is no daemon to talk to. That is chapter 4.
+anything yet - there is no daemon to talk to. That is chapter 4.
 
 ### Alternative: client inside your Alpine box
 
@@ -96,18 +96,18 @@ Smaller, and puts the SSH client in the same place.
 
 Two options. Pick one.
 
-### Option A — the Android app (recommended)
+### Option A - the Android app (recommended)
 
 Install **Tailscale** from the Play Store or F-Droid, sign in, connect.
-It uses Android's VPN API, so *everything* on the phone — including
-Termux — can reach your tailnet.
+It uses Android's VPN API, so *everything* on the phone - including
+Termux - can reach your tailnet.
 
 Simple, reliable, and it survives reboots.
 
 One caveat: Android permits a single active VPN. If you already use
 another VPN, you cannot run both, and Option B becomes relevant.
 
-### Option B — tailscaled inside a container
+### Option B - tailscaled inside a container
 
 ```bash
 rootd install tailscale
@@ -129,7 +129,7 @@ rootd tailscale tailscale up --ssh --hostname=my-phone
 unprivileged Android process, so this runs in *userspace networking*
 mode. Consequences:
 
-- the phone **is** reachable from your tailnet — your VM can SSH in;
+- the phone **is** reachable from your tailnet - your VM can SSH in;
 - traffic *from* the container can egress through a SOCKS5 proxy on
   `localhost:1055`;
 - it does **not** create a phone-wide VPN. Other apps, and Termux

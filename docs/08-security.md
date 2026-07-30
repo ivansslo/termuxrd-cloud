@@ -12,7 +12,7 @@ Short chapter, but the one that matters most.
   is reached over SSH.
 - **WireGuard encryption** end to end, with authentication handled by
   your tailnet identity.
-- **Small blast radius** — a lost phone is removed by revoking one
+- **Small blast radius** - a lost phone is removed by revoking one
   device in the Tailscale admin console.
 
 ## What it does not protect against
@@ -38,7 +38,7 @@ values, `~/.docker/config.json`.
 **Safe to share:** Tailscale IPs (`100.x.y.z` is private space),
 MagicDNS names, public keys, region names.
 
-**Ambiguous — treat as sensitive:** OCIDs and key fingerprints. They
+**Ambiguous - treat as sensitive:** OCIDs and key fingerprints. They
 cannot authenticate on their own, but they identify your account and
 help an attacker target you.
 
@@ -73,19 +73,19 @@ tenancy is not.
 3. Update `~/.oci/config`, `chmod 600`.
 4. Audit → **Search** for activity under the old key.
 
-**Tailscale auth key** — Admin console → **Settings → Keys** → revoke.
+**Tailscale auth key** - Admin console → **Settings → Keys** → revoke.
 Node keys are separate; revoke a *machine* under **Machines → ⋯ →
 Remove**.
 
-**SSH key** — remove the line from `~/.ssh/authorized_keys` on every
+**SSH key** - remove the line from `~/.ssh/authorized_keys` on every
 host, then generate a new pair.
 
-**AWS access key** — IAM → Users → Security credentials → deactivate,
+**AWS access key** - IAM → Users → Security credentials → deactivate,
 then delete. Prefer instance roles so there is no key at all.
 
 ### If a secret reached a git commit
 
-Deleting the file in a later commit does **not** remove it — the blob
+Deleting the file in a later commit does **not** remove it - the blob
 stays in history and on any clone or fork.
 
 ```bash
@@ -114,7 +114,7 @@ browser SSH as your way back in.
 
 ### Tailscale ACLs
 
-Default policy lets every device reach every other. Narrow it —
+Default policy lets every device reach every other. Narrow it -
 Admin console → **Access controls**:
 
 ```jsonc
@@ -152,7 +152,7 @@ services:
 ### Compose secrets, not environment variables
 
 Values in `environment:` are visible in `docker inspect` and in the
-process list. Use file-based secrets — as the Nextcloud example in
+process list. Use file-based secrets - as the Nextcloud example in
 [chapter 5](05-workloads.md#53-nextcloud-with-compose) does.
 
 ---
@@ -171,7 +171,7 @@ Access is revoked immediately; the device cannot re-authenticate.
 
 For a personal server this setup is solid: no public ports, encrypted
 transport, revocable per-device access. The likely failure modes are
-mundane — a leaked key in a screenshot, an expired node key, a container
+mundane - a leaked key in a screenshot, an expired node key, a container
 running as root that did not need to be.
 
 It is not a substitute for real isolation if you run untrusted

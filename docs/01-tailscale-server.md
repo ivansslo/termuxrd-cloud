@@ -9,7 +9,7 @@ Time: about 10 minutes.
 
 ## 1.1 Connect to the VM
 
-However you normally do it — the cloud console's browser SSH, or:
+However you normally do it - the cloud console's browser SSH, or:
 
 ```bash
 ssh -i ~/.ssh/your-key.pem ubuntu@<public-ip>
@@ -24,7 +24,7 @@ Default login users:
 | Amazon Linux | `ec2-user` |
 | Debian | `admin` or `debian` |
 
-Confirm where you are — this decides which notes apply to you later:
+Confirm where you are - this decides which notes apply to you later:
 
 ```bash
 uname -r
@@ -42,7 +42,7 @@ curl -fsSL https://tailscale.com/install.sh | sh
 ```
 
 The script detects your distribution and adds Tailscale's package
-repository. To inspect it first — reasonable for anything piped to a
+repository. To inspect it first - reasonable for anything piped to a
 shell:
 
 ```bash
@@ -97,7 +97,7 @@ disposable, so the node removes itself when it goes offline.
 tailscale ip -4
 ```
 
-Something like `100.101.102.103`. **Write it down** — you need it on the
+Something like `100.101.102.103`. **Write it down** - you need it on the
 phone.
 
 Confirm the daemon is healthy:
@@ -151,10 +151,10 @@ when a direct path is impossible.
 
 Concretely, you skipped:
 
-- **Oracle Cloud** — Security List ingress rules, *and* the host
+- **Oracle Cloud** - Security List ingress rules, *and* the host
   `iptables` REJECT rule that silently blocks non-SSH ports on OCI's
   Ubuntu images. That rule catches out an enormous number of people.
-- **AWS** — Security Group inbound rules.
+- **AWS** - Security Group inbound rules.
 
 Outbound is all that is needed, and both clouds allow it by default:
 
@@ -164,7 +164,7 @@ Outbound is all that is needed, and both clouds allow it by default:
 | 3478/udp | STUN, for NAT traversal |
 | 443/tcp | control plane and DERP relay fallback |
 
-If outbound UDP is blocked, Tailscale still works over 443/tcp — slower,
+If outbound UDP is blocked, Tailscale still works over 443/tcp - slower,
 but it connects.
 
 ---

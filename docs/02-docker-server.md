@@ -45,7 +45,7 @@ docker run --rm hello-world
 ```
 
 If you see *permission denied on /var/run/docker.sock*, the group change
-has not taken effect — log out and back in.
+has not taken effect - log out and back in.
 
 > Membership of the `docker` group is equivalent to root on this host: a
 > container can mount `/` and modify anything. Only grant it to accounts
@@ -81,7 +81,7 @@ Cgroup Driver: systemd
 Cgroup Version: 2
 ```
 
-`overlay2` and cgroup v2 are what a real kernel provides — and exactly
+`overlay2` and cgroup v2 are what a real kernel provides - and exactly
 what Android cannot, which is why the daemon lives here and not on your
 phone.
 
@@ -107,7 +107,7 @@ requires no listening port at all.
 Confirm nothing is listening publicly:
 
 ```bash
-sudo ss -tlnp | grep -E '2375|2376' || echo "clean — daemon is socket-only"
+sudo ss -tlnp | grep -E '2375|2376' || echo "clean - daemon is socket-only"
 ```
 
 ---

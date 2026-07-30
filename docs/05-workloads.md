@@ -5,7 +5,7 @@ Things worth actually running, now that the link works. Each assumes the
 
 ---
 
-## 5.1 Where files live — the one thing that trips everyone
+## 5.1 Where files live - the one thing that trips everyone
 
 The daemon runs on the VM. **Paths in your commands are resolved on the
 VM, not on your phone.**
@@ -15,11 +15,11 @@ dock run -v /home/ubuntu/data:/data alpine ls /data   # VM's /home/ubuntu/data
 dock run -v /sdcard/stuff:/data alpine ls /data       # does not exist on the VM
 ```
 
-Same for builds: `docker build .` sends a *build context* — the daemon
+Same for builds: `docker build .` sends a *build context* - the daemon
 never reads your phone's filesystem directly. Editing files on the phone
 and building remotely means getting them to the VM first.
 
-Simplest approach — edit on the VM over SSH:
+Simplest approach - edit on the VM over SSH:
 
 ```bash
 rootd sh docker -- ssh ubuntu@100.x.y.z
@@ -47,7 +47,7 @@ Reach it from the phone over the tailnet:
 curl http://100.x.y.z:8080
 ```
 
-Or just open `http://100.x.y.z:8080` in your Android browser — the
+Or just open `http://100.x.y.z:8080` in your Android browser - the
 Tailscale app routes it. **No Security List or Security Group rule
 needed**, because the traffic arrives over the tunnel rather than the
 public interface.
@@ -112,7 +112,7 @@ secrets:
     file: ./secrets/db_pass.txt
 ```
 
-Create the secret files on the VM — never inline passwords in the
+Create the secret files on the VM - never inline passwords in the
 compose file:
 
 ```bash
@@ -153,7 +153,7 @@ dock system prune -a --volumes  # careful: removes unused volumes too
 
 ## 5.5 Building images
 
-Builds run on the VM, using its CPU. This is the real payoff — a phone
+Builds run on the VM, using its CPU. This is the real payoff - a phone
 that cannot compile anything meaningful can drive a 4-core ARM builder.
 
 ```bash
@@ -207,7 +207,7 @@ dock run -d --name portainer --restart unless-stopped \
 
 Open `https://100.x.y.z:9443` and set an admin password immediately.
 
-> This mounts the Docker socket into a container — anyone who reaches
+> This mounts the Docker socket into a container - anyone who reaches
 > that UI controls the host. It is only acceptable because the port is
 > reachable solely over your tailnet. Never publish 9443 publicly.
 
