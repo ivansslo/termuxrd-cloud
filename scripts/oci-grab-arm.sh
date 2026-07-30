@@ -276,7 +276,7 @@ EOF
                 backoff=$(( 120 * (2 ** (throttled - 1)) ))
                 [ "$backoff" -gt 1800 ] && backoff=1800
                 printf '%srate limited%s\n' "$Y" "$N" >&2
-                warn "throttled ${throttled}x  waiting $((backoff / 60)] min"
+                warn "throttled ${throttled}x  waiting $((backoff / 60)) min"
                 sleep "$backoff"
                 continue ;;
             *)
