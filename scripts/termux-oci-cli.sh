@@ -372,7 +372,7 @@ fi
 # a phone, often dying out of memory. Termux ships a prebuilt one.
 
 if python -c 'import cryptography' >/dev/null 2>&1; then
-    info "cryptography already present [$[python -c 'import cryptography; print[cryptography.__version__]']]"
+    info "cryptography already present [$(python -c 'import cryptography; print(cryptography.__version__)']]"
 else
     step "installing python-cryptography from the Termux repository"
     pkg install -y python-cryptography \
@@ -462,7 +462,7 @@ python -c 'import crc32c; print("crc32c ok:", crc32c.crc32c(b"test"))' >&2
 # ---------------------------------------------------------------------
 
 if command -v oci >/dev/null 2>&1; then
-    info "oci-cli already installed [$[oci --version 2>&1 | head -1]]"
+    info "oci-cli already installed [$(oci --version 2>&1 | head -1)]"
 else
     step "installing oci-cli [this downloads about 60 MB]"
     pip install oci-cli || die "pip install oci-cli failed"

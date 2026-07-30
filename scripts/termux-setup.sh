@@ -107,7 +107,7 @@ fi
 # ---------------------------------------------------------------------
 
 if command -v rootd >/dev/null 2>&1; then
-    info "rootd already installed [$[rootd --version 2>&1 | head -1]]"
+    info "rootd already installed [$(rootd --version 2>&1 | head -1)]"
 else
     step "installing termuxrd $TERMUXRD_REF"
     TMP="$(mktemp -d)"

@@ -25,7 +25,7 @@ export OCI_REGION="$REGION"
 COMP=$(grep "^tenancy" ~/.oci/config | head -1 | cut -d= -f2)
 
 # Get availability domain
-AD=$(oci iam availability-domain list --profile "$PROFILE" --query 'data[0].name' --raw-output)
+AD=$(oci iam availability-domain list --profile "$PROFILE" --query 'data(0).name' --raw-output)
 
 # Get subnet
 SUBNET=$(oci network subnet list --compartment-id "$COMP" --profile "$PROFILE" \
@@ -59,7 +59,7 @@ oci compute instance launch \
 echo "=== $NAME is RUNNING ==="
 
 # Get IP and add to SSH config
-IP=$(oci compute instance list-vnics --instance-id "$(oci compute instance list --compartment-id "$COMP" --profile "$PROFILE" --display-name "$NAME" --query 'data[0].id' --raw-output)" --query 'data[0]."public-ip"' --raw-output)
+IP=$(oci compute instance list-vnics --instance-id "$(oci compute instance list --compartment-id "$COMP" --profile "$PROFILE" --display-name "$NAME" --query 'data(0).id' --raw-output)" --query 'data[0]."public-ip"' --raw-output)
 
 echo "Public IP: $IP"
 

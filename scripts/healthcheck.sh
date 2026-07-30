@@ -79,7 +79,7 @@ fi
 # ---------------------------------------------------------------------
 printf '\n%s2. configuration%s\n' "$B" "$N"
 
-CONFIGURED="$(rootd docker "$BOX" 2>&1 | grep -oE 'ssh://[^ ]+' | head -1)"
+CONFIGURED="$(rootd docker "$BOX" 2>&1 | grep -oE 'ssh://(^ )+' | head -1)"
 if [ -n "$CONFIGURED" ]; then
     ok "DOCKER_HOST = $CONFIGURED"
     if [ -z "$VM_IP" ]; then

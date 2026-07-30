@@ -73,9 +73,9 @@ cat >&2 <<PLAN
   Hostname  : ${HOSTNAME_TS:-<will prompt>}
 
   Will install:
-$( [ "$SKIP_TAILSCALE" = 0 ] && echo "    - Tailscale, and join your tailnet" )
-$( [ "$SKIP_DOCKER" = 0 ]    && echo "    - Docker Engine + Compose, socket-only (no TCP port)" )
-$( [ "$ADD_SWAP" = 1 ]       && echo "    - 2 GB swap file" )
+$( ( "$SKIP_TAILSCALE" = 0 ) && echo "    - Tailscale, and join your tailnet" )
+$( ( "$SKIP_DOCKER" = 0 )    && echo "    - Docker Engine + Compose, socket-only (no TCP port)" )
+$( ( "$ADD_SWAP" = 1 )       && echo "    - 2 GB swap file" )
 
   ${D}No inbound firewall ports are opened. Nothing listens publicly.${N}
 
@@ -97,7 +97,7 @@ fi
 
 if [ "$SKIP_TAILSCALE" = 0 ]; then
     if command -v tailscale >/dev/null 2>&1; then
-        info "tailscale already installed [$[tailscale version | head -1]]"
+        info "tailscale already installed [$(tailscale version | head -1)]"
     else
         step "installing tailscale"
         curl -fsSL https://tailscale.com/install.sh | sh
@@ -136,7 +136,7 @@ fi
 
 if [ "$SKIP_DOCKER" = 0 ]; then
     if command -v docker >/dev/null 2>&1; then
-        info "docker already installed [$[docker --version]]"
+        info "docker already installed [$(docker --version)]"
     else
         step "installing docker engine"
         case "$DISTRO" in
