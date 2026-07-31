@@ -15,6 +15,19 @@
 #
 set -euo pipefail
 
+# Full, stable path to this script for use in printed "run this" hints.
+# `$(basename "$0")` alone only ever prints "termux-oci-cli.sh", which is
+# useless once this script is invoked from anywhere other than the exact
+# directory the user happened to be standing in (e.g. from quick-start.sh,
+# from another directory, or copy-pasted from a hint that already lost the
+# path). Compute it once, as an absolute path, and show it relative to
+# $HOME (as `~/...`) when possible so it stays readable.
+SCRIPT_ABS_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+case "$SCRIPT_ABS_PATH" in
+    "$HOME"/*) SCRIPT_DISPLAY_PATH="~${SCRIPT_ABS_PATH#"$HOME"}" ;;
+    *)         SCRIPT_DISPLAY_PATH="$SCRIPT_ABS_PATH" ;;
+esac
+
 ASSUME_YES=0
 CHECK_ONLY=0
 REPAIR_ONLY=0
@@ -219,7 +232,7 @@ PYREPAIR
 
     printf '\n  %sResult:%s\n\n' "$B" "$N"
     sed 's/^/    /' "$CFG" >&2
-    printf '\n  Verify with:  bash %s --check\n\n' "$(basename "$0")" >&2
+    printf '\n  Verify with:  bash %s --check\n\n' "$SCRIPT_DISPLAY_PATH" >&2
     exit 0
 fi
 
@@ -250,13 +263,13 @@ if [ "$CHECK_ONLY" = 1 ]; then
         if [ "$lines" -lt 2 ] 2>/dev/null; then
             printf '  %s✗%s config is a single line - every key ran together\n' "$R" "$N"
             printf '      A config pasted without newlines is unreadable to the SDK.\n'
-            printf '      Repair it with:  bash %s --repair-config\n' "$(basename "$0")"
+            printf '      Repair it with:  bash %s --repair-config\n' "$SCRIPT_DISPLAY_PATH"
             fail=1
         elif config_is_sane; then
             printf '  %s✓%s config parses, DEFAULT profile present\n' "$G" "$N"
         else
             printf '  %s✗%s config does not parse into a usable profile\n' "$R" "$N"
-            printf '      Repair it with:  bash %s --repair-config\n' "$(basename "$0")"
+            printf '      Repair it with:  bash %s --repair-config\n' "$SCRIPT_DISPLAY_PATH"
             fail=1
         fi
         mode=$(stat -c '%a' "$OCI_DIR/config" 2>/dev/null || echo '?')
@@ -521,7 +534,7 @@ cat >&2 <<DONE
 
   Verify everything:
 
-    bash $(basename "$0") --check
+    bash $SCRIPT_DISPLAY_PATH --check
 
   Or test directly:
 

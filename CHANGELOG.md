@@ -1,5 +1,31 @@
 # Changelog
 
+## [1.4.3] - 2026-08-01
+
+### Fixed
+
+- **`termux-oci-cli.sh`'s final "verify with" hint only ever printed the
+  bare filename** (`bash termux-oci-cli.sh --check`), via
+  `$(basename "$0")`. Copy-pasted from anywhere other than the exact
+  directory the script happened to be run from, that line does not
+  resolve. It now computes and prints the script's own absolute path at
+  startup, shown as `~/...` when under `$HOME` (e.g.
+  `bash ~/termuxrd-cloud/scripts/termux-oci-cli.sh --check`), in every
+  place the hint appears (initial `--check` hint, both `--repair-config`
+  hints, and the final "OCI CLI ready" banner).
+
+### Changed
+
+- **`quick-start.sh`: removed menu option "Import OCI Profile from .env"**
+  (previously option 3). It is a rarely-needed one-off (importing an
+  existing `.env`'s OCI credentials into a named profile) that added a
+  step to the main flow for something better run directly:
+  `bash scripts/oci-env-to-config.sh <path-to-.env> <profile-name>` — the
+  script itself is unchanged and still works exactly as before. Menu
+  options renumbered: Hunt ARM Capacity 4→3, Cloud VM Connection 5→4,
+  Local Box Tooling 6→5, Healthcheck 7→6, AI Agent Manager 8→7. `d`/`p`/`q`
+  are unaffected. `INSTRUCTIONS.md`'s walkthrough updated to match.
+
 ## [1.4.2] - 2026-07-28
 
 ### Fixed
